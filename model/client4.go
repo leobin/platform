@@ -138,6 +138,10 @@ func (c *Client4) GetSystemRoute() string {
 	return fmt.Sprintf("/system")
 }
 
+func (c *Client4) GetClusterRoute() string {
+	return fmt.Sprintf("/cluster")
+}
+
 func (c *Client4) GetIncomingWebhooksRoute() string {
 	return fmt.Sprintf("/hooks/incoming")
 }
@@ -1012,5 +1016,17 @@ func (c *Client4) GetPreferenceByCategoryAndName(userId string, category string,
 	} else {
 		defer closeBody(r)
 		return PreferenceFromJson(r.Body), BuildResponse(r)
+	}
+}
+
+// Cluster Section
+
+// GetClusterStatus returns the status of all the configured cluster nodes.
+func (c *Client4) GetClusterStatus() ([]*ClusterInfo, *Response) {
+	if r, err := c.DoApiGet(c.GetClusterRoute()+"/status", ""); err != nil {
+		return nil, &Response{StatusCode: r.StatusCode, Error: err}
+	} else {
+		defer closeBody(r)
+		return ClusterInfosFromJson(r.Body), BuildResponse(r)
 	}
 }
