@@ -1,11 +1,11 @@
-// Copyright (c) 2016 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 import FormError from 'components/form_error.jsx';
 
 import * as GlobalActions from 'actions/global_actions.jsx';
 import {addUserToTeamFromInvite} from 'actions/team_actions.jsx';
-import {webLoginByLdap} from 'actions/user_actions.jsx';
+import {loadMe, webLoginByLdap} from 'actions/user_actions.jsx';
 import {trackEvent} from 'actions/diagnostics_actions.jsx';
 
 import * as Utils from 'utils/utils.jsx';
@@ -97,7 +97,7 @@ export default class SignupLdap extends React.Component {
     }
 
     finishSignup() {
-        GlobalActions.emitInitialLoad(
+        loadMe(
             () => {
                 const query = this.props.location.query;
                 GlobalActions.loadDefaultLocale();
@@ -115,7 +115,7 @@ export default class SignupLdap extends React.Component {
         if (global.window.mm_config.LdapLoginFieldName) {
             ldapIdPlaceholder = global.window.mm_config.LdapLoginFieldName;
         } else {
-            ldapIdPlaceholder = Utils.localizeMessage('login.ldap_username', 'AD/LDAP Username');
+            ldapIdPlaceholder = Utils.localizeMessage('login.ldapUsername', 'AD/LDAP Username');
         }
 
         let errorClass = '';

@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 import Constants from 'utils/constants.jsx';
@@ -25,6 +25,7 @@ export default class SuggestionBox extends React.Component {
         this.handleCompositionEnd = this.handleCompositionEnd.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
         this.handlePretextChanged = this.handlePretextChanged.bind(this);
+        this.blur = this.blur.bind(this);
 
         this.suggestionId = Utils.generateId();
         SuggestionStore.registerSuggestionBox(this.suggestionId);
@@ -138,9 +139,8 @@ export default class SuggestionBox extends React.Component {
 
         if (this.props.onItemSelected) {
             const items = SuggestionStore.getItems(this.suggestionId);
-            const selection = SuggestionStore.getSelection(this.suggestionId);
             for (const i of items) {
-                if (i.name === selection) {
+                if (i.name === term) {
                     this.props.onItemSelected(i);
                     break;
                 }
@@ -171,6 +171,7 @@ export default class SuggestionBox extends React.Component {
                 e.preventDefault();
             } else if (e.which === KeyCodes.ENTER || e.which === KeyCodes.TAB) {
                 GlobalActions.emitCompleteWordSuggestion(this.suggestionId);
+                this.props.onKeyDown(e);
                 e.preventDefault();
             } else if (e.which === KeyCodes.ESCAPE) {
                 GlobalActions.emitClearSuggestions(this.suggestionId);
@@ -184,9 +185,18 @@ export default class SuggestionBox extends React.Component {
     }
 
     handlePretextChanged(pretext) {
+        let handled = false;
         for (const provider of this.props.providers) {
-            provider.handlePretextChanged(this.suggestionId, pretext);
+            handled = provider.handlePretextChanged(this.suggestionId, pretext) || handled;
         }
+
+        if (!handled) {
+            SuggestionStore.clearSuggestions(this.suggestionId);
+        }
+    }
+
+    blur() {
+        this.refs.textbox.blur();
     }
 
     render() {

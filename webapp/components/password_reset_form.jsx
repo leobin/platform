@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 import ReactDOM from 'react-dom';
@@ -43,7 +43,7 @@ class PasswordResetForm extends React.Component {
         });
 
         resetPassword(
-            this.props.location.query.code,
+            this.props.location.query.token,
             password,
             () => {
                 this.setState({error: null});

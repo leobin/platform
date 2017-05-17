@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 import {FormattedMessage} from 'react-intl';
@@ -21,8 +21,7 @@ export default class DoVerifyEmail extends React.Component {
     }
     componentWillMount() {
         verifyEmail(
-            this.props.location.query.uid,
-            this.props.location.query.hid,
+            this.props.location.query.token,
             () => {
                 browserHistory.push('/login?extra=verified&email=' + encodeURIComponent(this.props.location.query.email));
             },

@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 import React from 'react';
@@ -203,7 +203,7 @@ export default class AbstractIncomingWebhook extends React.Component {
                                 <div className='form__help'>
                                     <FormattedMessage
                                         id='add_incoming_webhook.channel.help'
-                                        defaultMessage='Public channel or private group that receives the webhook payloads. You must belong to the private group when setting up the webhook.'
+                                        defaultMessage='Public or private channel that receives the webhook payloads. You must belong to the private channel when setting up the webhook.'
                                     />
                                 </div>
                             </div>

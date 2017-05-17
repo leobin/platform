@@ -148,6 +148,10 @@
     "translation": "権限を確認するユーザーを取得できません。"
   },
   {
+    "id": "api.brand.init.debug",
+    "translation": "ブランドAPIルートを初期化しています"
+  },
+  {
     "id": "api.channel.add_member.added",
     "translation": "%vは、%vによってチャンネルに追加されました"
   },
@@ -181,11 +185,11 @@
   },
   {
     "id": "api.channel.can_manage_channel.private_restricted_system_admin.app_error",
-    "translation": "非公開グループの作成と管理は、システム管理者しかできません。"
+    "translation": "非公開チャンネルの作成と管理は、システム管理者のみが行えます。"
   },
   {
     "id": "api.channel.can_manage_channel.private_restricted_team_admin.app_error",
-    "translation": "非公開グループの作成と管理は、チーム管理者かシステム管理者しかできません。"
+    "translation": "非公開チャンネルの作成と管理は、チーム管理者かシステム管理者のみが行えます。"
   },
   {
     "id": "api.channel.can_manage_channel.public_restricted_system_admin.app_error",
@@ -284,6 +288,10 @@
     "translation": "チャンネルAPIルートを初期化しています"
   },
   {
+    "id": "api.channel.join_channel.already_deleted.app_error",
+    "translation": "チャンネルは既に削除されています"
+  },
+  {
     "id": "api.channel.join_channel.permissions.app_error",
     "translation": "あなたには必要な権限が付与されていません"
   },
@@ -301,7 +309,7 @@
   },
   {
     "id": "api.channel.leave.last_member.app_error",
-    "translation": "あなたが最後のメンバーです。脱退する代わりに非公開グループを削除しましょう。"
+    "translation": "あなたが最後のメンバーです。脱退する代わりに非公開チャンネルを削除しましょう。"
   },
   {
     "id": "api.channel.leave.left",
@@ -380,8 +388,12 @@
     "translation": "デフォルトのチャンネル{{.Channel}}に不正な更新をしようとしました"
   },
   {
-    "id": "api.channel.update_last_viewed_at.get_unread_count_for_channel.errord",
+    "id": "api.channel.update_last_viewed_at.get_unread_count_for_channel.error",
     "translation": "未読数を取得できませんでした user_id=%v and channel_id=%v, err=%v"
+  },
+  {
+    "id": "api.cluster.init.debug",
+    "translation": "クラスターAPIルートを初期化しています"
   },
   {
     "id": "api.command.admin_only.app_error",
@@ -800,6 +812,14 @@
     "translation": "shrug"
   },
   {
+    "id": "api.compliance.init.debug",
+    "translation": "コンプライアンスAPIルートを初期化しています"
+  },
+  {
+    "id": "api.config.client.old_format.app_error",
+    "translation": "クライアントの設定で新しい形式がまだサポートされていません。クエリー文字列に format=old を指定してください。"
+  },
+  {
     "id": "api.context.404.app_error",
     "translation": "申し訳ありません。ページが見付かりません。"
   },
@@ -866,6 +886,10 @@
   {
     "id": "api.context.unknown.app_error",
     "translation": "詳細不明なエラーが発生しました。サポートに問い合わせしてください。"
+  },
+  {
+    "id": "api.deprecated.init.debug",
+    "translation": "非推奨APIルートを初期化しています"
   },
   {
     "id": "api.email_batching.add_notification_email_to_batch.channel_full.app_error",
@@ -978,6 +1002,10 @@
     "translation": "絵文字APIルートを初期化しています"
   },
   {
+    "id": "api.emoji.init.debug",
+    "translation": "絵文字APIルートを初期化しています"
+  },
+  {
     "id": "api.emoji.storage.app_error",
     "translation": "ファイルストレージが正しく設定されていません。S3またはローカルサーバーファイルストレージを設定してください。"
   },
@@ -1002,6 +1030,10 @@
     "translation": "絵文字を作成できません。GIF画像をエンコードする際にエラーが発生しました。"
   },
   {
+    "id": "api.file.attachments.disabled.app_error",
+    "translation": "このサーバーではファイル添付が無効になっています。"
+  },
+  {
     "id": "api.file.get_file.public_disabled.app_error",
     "translation": "公開リンクはシステム管理者によって無効にされています"
   },
@@ -1010,8 +1042,8 @@
     "translation": "公開リンクが不正です"
   },
   {
-    "id": "api.file.get_file_preview.no_thumbnail.app_error",
-    "translation": "このファイルにはプレビュー画像がありません"
+    "id": "api.file.get_file_preview.no_preview.app_error",
+    "translation": "ファイルにプレビュー画像がありません"
   },
   {
     "id": "api.file.get_file_thumbnail.no_thumbnail.app_error",
@@ -1023,7 +1055,7 @@
   },
   {
     "id": "api.file.get_info_for_request.storage.app_error",
-    "translation": "ファイルの情報を取得できません。画像ストレージが設定されていません。"
+    "translation": "ファイルの情報を取得できません。ファイルストレージが設定されていません。"
   },
   {
     "id": "api.file.get_public_file_old.storage.app_error",
@@ -1230,6 +1262,10 @@
     "translation": "内向きのウェブフックはシステム管理者によって無効にされています。"
   },
   {
+    "id": "api.ldap.init.debug",
+    "translation": "LDAP APIルートを初期化しています"
+  },
+  {
     "id": "api.license.add_license.array.app_error",
     "translation": "リクエストの'license'配列が空です"
   },
@@ -1264,6 +1300,10 @@
   {
     "id": "api.license.add_license.unique_users.app_error",
     "translation": "あなたのシステムは{{.Count}}の重複のないユーザーが使ってます。このライセンスは{{.Users}}ユーザーのみサポートしています。重複のないユーザー数は、電子メールアドレスによって決められます。全ユーザー数は、サイトリポート->統計を見るを参照してください。"
+  },
+  {
+    "id": "api.license.client.old_format.app_error",
+    "translation": "クライアントのライセンスで新しい形式がまだサポートされていません。クエリー文字列に format=old を指定してください。"
   },
   {
     "id": "api.license.init.debug",
@@ -1652,10 +1692,6 @@
     "translation": "他のユーザーの設定は変更できません"
   },
   {
-    "id": "api.preference.save_preferences.set_details.app_error",
-    "translation": "session.user_id={{.SessionUserId}}, preference.user_id={{.PreferenceUserId}}"
-  },
-  {
     "id": "api.reaction.delete_reaction.mismatched_channel_id.app_error",
     "translation": "チャンネルIDがURL内の投稿IDと一致しないためリアクションを削除できませんでした"
   },
@@ -1668,8 +1704,16 @@
     "translation": "チャンネルIDがURL内の投稿IDと一致しないためリアクションを取得できませんでした"
   },
   {
+    "id": "api.reaction.save_reaction.invalid.app_error",
+    "translation": "リアクションが正しくありません。"
+  },
+  {
     "id": "api.reaction.save_reaction.mismatched_channel_id.app_error",
     "translation": "チャンネルIDがURL内の投稿IDと一致しないためリアクションを保存できませんでした"
+  },
+  {
+    "id": "api.reaction.save_reaction.user_id.app_error",
+    "translation": "他のユーザーのリアクションを保存することはできません。"
   },
   {
     "id": "api.reaction.send_reaction_event.post.app_error",
@@ -1908,12 +1952,32 @@
     "translation": "状態APIルートを初期化しています"
   },
   {
+    "id": "api.status.init.debug",
+    "translation": "状態APIルートを初期化しています"
+  },
+  {
     "id": "api.status.last_activity.error",
     "translation": "LastActivityAtを更新できませんでした user_id=%v、session_id=%v、err=%v"
   },
   {
     "id": "api.status.save_status.error",
     "translation": "状態を保存できませんでした user_id=%v、err=%v"
+  },
+  {
+    "id": "api.status.user_not_found.app_error",
+    "translation": "ユーザーが見付かりません"
+  },
+  {
+    "id": "api.team.add_user_to_team.invalid_data.app_error",
+    "translation": "不正なデータです。"
+  },
+  {
+    "id": "api.team.add_user_to_team.invalid_invite_id.app_error",
+    "translation": "不正な招待IDです。この招待IDに一致するチームはありません。"
+  },
+  {
+    "id": "api.team.add_user_to_team.missing_parameter.app_error",
+    "translation": "チームにユーザーを追加するにはパラメーターが必要です。"
   },
   {
     "id": "api.team.create_team.email_disabled.app_error",
@@ -2229,7 +2293,7 @@
   },
   {
     "id": "api.templates.upgrade_30_body.info",
-    "translation": "<h3 style='font-weight: normal; margin-top: 10px;'>重複していたアカウントが更新されました</h3>利用しているMattermostサーバーがバージョン3.0に更新され、1つのアカウントで複数のチームを利用できるようになりました。<br/><br/>サーバー上の他のアカウントと同じメールアドレス・ユーザー名が使用されていることを検知したため、このメールでお知らせしています。<br/><br/>アカウントは次の通りに更新されました: <br/><br/>{{if .EmailChanged }}- メールアドレスが重複していた`/{{.TeamName}}`チームのアカウントのメールアドレスは`{{.Email}}`に変更されました。 メールアドレスとパスワードをログインに使用している場合は、この新しいメールアドレスを使用してください。<br/><br/>{{end}}{{if .UsernameChanged }}- ユーザー名が重複していた`/{{.TeamName}}`チームのアカウントのユーザー名は`{{.Username}}`に変更されました。<br/><br/>{{end}} 推奨される操作: <br/><br/>重複していたアカウントを利用してチームへログインし、メインのアカウントをチームと公開チャンネル、利用を続ける非公開グループに追加することを推奨します。<br/><br/>メインのアカウントで全ての公開チャンネルと非公開グループの履歴を閲覧することが出来ます。ダイレクトメッセージの履歴は、重複していたアカウントでログインすることで閲覧することが出来ます。<br/><br/>追加情報: <br/><br/>Mattermost 3.0への更新に関する情報は、次のURLよりご確認ください: <a href='http://www.mattermost.org/upgrading-to-mattermost-3-0/'>http://www.mattermost.org/upgrading-to-mattermost-3-0/</a><br/><br/>"
+    "translation": "<h3 style='font-weight: normal; margin-top: 10px;'>重複していたアカウントが更新されました</h3>利用しているMattermostサーバーがバージョン3.0に更新され、1つのアカウントを複数のチームで利用できるようになりました。<br/><br/>サーバー上の他のアカウントと同じメールアドレス・ユーザー名が使用されていることを検知したため、このメールでお知らせしています。<br/><br/>アカウントは次の通りに更新されました: <br/><br/>{{if .EmailChanged }}- メールアドレスが重複していた`/{{.TeamName}}`チームのアカウントのメールアドレスは`{{.Email}}`に変更されました。 メールアドレスとパスワードをログインに使用している場合は、この新しいメールアドレスを使用してください。<br/><br/>{{end}}{{if .UsernameChanged }}- ユーザー名が重複していた`/{{.TeamName}}`チームのアカウントのユーザー名は`{{.Username}}`に変更されました。<br/><br/>{{end}} 推奨される操作: <br/><br/>重複していたアカウントを利用してチームへログインし、メインのアカウントをチームとチャンネルに追加することを推奨します。<br/><br/>メインのアカウントで全てのチャンネルの履歴を閲覧することが出来ます。ダイレクトメッセージの履歴は、重複していたアカウントでログインすることで閲覧することが出来ます。<br/><br/>追加情報: <br/><br/>Mattermost 3.0への更新に関する情報は、次のURLよりご確認ください: <a href='http://www.mattermost.org/upgrading-to-mattermost-3-0/'>http://www.mattermost.org/upgrading-to-mattermost-3-0/</a><br/><br/>"
   },
   {
     "id": "api.templates.upgrade_30_subject.info",
@@ -2465,7 +2529,7 @@
   },
   {
     "id": "api.user.login.inactive.app_error",
-    "translation": "あなたのアカウントは無効化されています。システム管理者に連絡してください。"
+    "translation": "あなたのアカウントが無効化されているためログインできませんでした。  システム管理者に連絡してください。"
   },
   {
     "id": "api.user.login.invalid_credentials",
@@ -3032,6 +3096,10 @@
     "translation": "ユーザーのチャネルメンバーシップの役割が不正です。"
   },
   {
+    "id": "app.import.validate_user_import_data.auth_data_and_password.error",
+    "translation": "ユーザーの認証データとパスワードが相互に排他的です。"
+  },
+  {
     "id": "app.import.validate_user_import_data.auth_data_length.error",
     "translation": "ユーザーの認証データが長すぎます。"
   },
@@ -3058,6 +3126,10 @@
   {
     "id": "app.import.validate_user_import_data.nickname_length.error",
     "translation": "ユーザーのニックネームが長すぎます。"
+  },
+  {
+    "id": "app.import.validate_user_import_data.pasword_length.error",
+    "translation": "ユーザーのパスワードの長さが不正です。"
   },
   {
     "id": "app.import.validate_user_import_data.position_length.error",
@@ -3106,6 +3178,14 @@
   {
     "id": "authentication.permissions.manage_team_roles.name",
     "translation": "チームの役割を管理する"
+  },
+  {
+    "id": "authentication.permissions.read_public_channel.description",
+    "translation": "公開チャンネルを読めるようにする"
+  },
+  {
+    "id": "authentication.permissions.read_public_channel.name",
+    "translation": "公開チャンネルを読む"
   },
   {
     "id": "authentication.permissions.team_invite_user.description",
@@ -3428,22 +3508,6 @@
     "translation": "ページが見付かりません"
   },
   {
-    "id": "leave_team_modal.desc",
-    "translation": "全ての公開チャンネルと非公開グループから脱退します。  チームが非公開な場合、再度参加することはできません。  実行してよろしいですか?"
-  },
-  {
-    "id": "leave_team_modal.no",
-    "translation": "いいえ"
-  },
-  {
-    "id": "leave_team_modal.title",
-    "translation": "チームから脱退しますか?"
-  },
-  {
-    "id": "leave_team_modal.yes",
-    "translation": "はい"
-  },
-  {
     "id": "manaultesting.get_channel_id.no_found.debug",
     "translation": "チャンネルが見付かりません: %v、%vではありませんか"
   },
@@ -3564,6 +3628,10 @@
     "translation": "不正な転送URLです"
   },
   {
+    "id": "model.authorize.is_valid.response_type.app_error",
+    "translation": "不正なレスポンス形式"
+  },
+  {
     "id": "model.authorize.is_valid.scope.app_error",
     "translation": "不正なスコープです"
   },
@@ -3660,6 +3728,14 @@
     "translation": "リクエストを書き込めません"
   },
   {
+    "id": "model.client.get_flagged_posts_in_channel.missing_parameter.app_error",
+    "translation": "チャンネルパラメーターがありません"
+  },
+  {
+    "id": "model.client.get_flagged_posts_in_team.missing_parameter.app_error",
+    "translation": "チームパラメータがありません"
+  },
+  {
     "id": "model.client.login.app_error",
     "translation": "認証トークンが一致しません"
   },
@@ -3674,6 +3750,30 @@
   {
     "id": "model.client.set_profile_user.writer.app_error",
     "translation": "リクエストを書き込めません"
+  },
+  {
+    "id": "model.client.upload_post_attachment.channel_id.app_error",
+    "translation": "チャンネルIDをマルチパートフォームに書き込む際にエラーが発生しました"
+  },
+  {
+    "id": "model.client.upload_post_attachment.file.app_error",
+    "translation": "ファイルをマルチパートフォームに書き込む際にエラーが発生しました"
+  },
+  {
+    "id": "model.client.upload_post_attachment.file_size.app_error",
+    "translation": "ファイルサイズをマルチパートフォームに書き込む際にエラーが発生しました"
+  },
+  {
+    "id": "model.client.upload_post_attachment.import_from.app_error",
+    "translation": "インポート元をマルチパートフォームに書き出す際にエラーが発生しました"
+  },
+  {
+    "id": "model.client.upload_post_attachment.writer.app_error",
+    "translation": "マルチパートライターをクローズする際にエラーが発生しました"
+  },
+  {
+    "id": "model.client.upload_saml_cert.app_error",
+    "translation": "リクエストからSAML証明書のマルチパートを作成する際にエラーになりました"
   },
   {
     "id": "model.command.is_valid.create_at.app_error",
@@ -3881,7 +3981,7 @@
   },
   {
     "id": "model.config.is_valid.max_file_size.app_error",
-    "translation": "ファイル設定の最大ファイルサイズが不正です。ゼロ以上の数を指定してください。"
+    "translation": "ファイル設定の最大ファイルサイズが不正です。0より大きい値にしてください。"
   },
   {
     "id": "model.config.is_valid.max_notify_per_channel.app_error",
@@ -4320,6 +4420,14 @@
     "translation": "不正なユーザーIDです"
   },
   {
+    "id": "model.token.is_valid.expiry",
+    "translation": "不正なトークンの有効期限"
+  },
+  {
+    "id": "model.token.is_valid.size",
+    "translation": "不正なトークンです。"
+  },
+  {
     "id": "model.user.is_valid.auth_data.app_error",
     "translation": "不正な認証データです"
   },
@@ -4354,6 +4462,10 @@
   {
     "id": "model.user.is_valid.nickname.app_error",
     "translation": "不正なニックネームです"
+  },
+  {
+    "id": "model.user.is_valid.password_limit.app_error",
+    "translation": "bcryptの制限により72文字以上のパスワードを設定できません"
   },
   {
     "id": "model.user.is_valid.position.app_error",
@@ -4504,10 +4616,6 @@
     "translation": "方言特有のドライバー%vが作成できませんでした"
   },
   {
-    "id": "store.sql.drop_column.critical",
-    "translation": "列%vを削除できませんでした"
-  },
-  {
     "id": "store.sql.incorrect_mac",
     "translation": "与えられたciphertextに対するMACが正しくありません"
   },
@@ -4656,6 +4764,14 @@
     "translation": "チャンネルが見付かりませんでした"
   },
   {
+    "id": "store.sql_channel.get_channels_by_ids.get.app_error",
+    "translation": "チャンネルが取得できませんでした"
+  },
+  {
+    "id": "store.sql_channel.get_channels_by_ids.not_found.app_error",
+    "translation": "チャンネルが見付かりませんでした"
+  },
+  {
     "id": "store.sql_channel.get_deleted_by_name.existing.app_error",
     "translation": "削除されたチャンネルが見付かりませんでした"
   },
@@ -4700,6 +4816,14 @@
     "translation": "チャンネルが見付かりませんでした"
   },
   {
+    "id": "store.sql_channel.get_public_channels.get.app_error",
+    "translation": "公開チャンネルが取得できませんでした"
+  },
+  {
+    "id": "store.sql_channel.get_unread.app_error",
+    "translation": "チャンネルの未読メッセージを取得できませんでした"
+  },
+  {
     "id": "store.sql_channel.increment_mention_count.app_error",
     "translation": "あなたについての投稿数を集計できませんでした"
   },
@@ -4714,6 +4838,10 @@
   {
     "id": "store.sql_channel.permanent_delete_members_by_user.app_error",
     "translation": "チャンネルのメンバーを削除できません"
+  },
+  {
+    "id": "store.sql_channel.pinned_posts.app_error",
+    "translation": "ピン止めされた投稿が見付かりません"
   },
   {
     "id": "store.sql_channel.remove_member.app_error",
@@ -5100,6 +5228,10 @@
     "translation": "既存の投稿は更新できません。"
   },
   {
+    "id": "store.sql_post.search.disabled",
+    "translation": "このサーバーでは検索が無効になっています。システム管理者に問い合わせてください。"
+  },
+  {
     "id": "store.sql_post.search.warn",
     "translation": "投稿検索時のクエリエラー: %v"
   },
@@ -5406,6 +5538,14 @@
   {
     "id": "store.sql_team.save_member.save.app_error",
     "translation": "チャンネルのメンバーを保存できませんでした"
+  },
+  {
+    "id": "store.sql_team.search_all_team.app_error",
+    "translation": "チームを検索する際にエラーが発生しました"
+  },
+  {
+    "id": "store.sql_team.search_open_team.app_error",
+    "translation": "公開されているチームを検索する際にエラーが発生しました"
   },
   {
     "id": "store.sql_team.update.app_error",
@@ -5978,5 +6118,21 @@
   {
     "id": "web.watcher_fail.error",
     "translation": "ウォッチャーにディレクトリーを追加できませんでした %v"
+  },
+  {
+    "id": "wsapi.status.init.debug",
+    "translation": "状態ウェブソケットAPIルートを初期化しています"
+  },
+  {
+    "id": "wsapi.system.init.debug",
+    "translation": "システムウェブソケットAPIルートを初期化しています"
+  },
+  {
+    "id": "wsapi.user.init.debug",
+    "translation": "ユーザーウェブソケットAPIルートを初期化しています"
+  },
+  {
+    "id": "wsapi.webrtc.init.debug",
+    "translation": "WebRTCウェブソケットAPIルートを初期化しています"
   }
 ]

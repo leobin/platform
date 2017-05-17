@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 import MultiSelectList from './multiselect_list.jsx';
@@ -111,7 +111,8 @@ export default class MultiSelect extends React.Component {
     }
 
     render() {
-        const options = this.props.options;
+        const options = Object.assign([], this.props.options);
+        const values = this.props.values;
 
         let numRemainingText;
         if (this.props.numRemainingText) {
@@ -128,6 +129,18 @@ export default class MultiSelect extends React.Component {
             );
         }
 
+        let buttonSubmitText;
+        if (this.props.buttonSubmitText) {
+            buttonSubmitText = this.props.buttonSubmitText;
+        } else if (this.props.maxValues != null) {
+            buttonSubmitText = (
+                <FormattedMessage
+                    id='multiselect.go'
+                    defaultMessage='Go'
+                />
+            );
+        }
+
         let optionsToDisplay = [];
         let nextButton;
         let previousButton;
@@ -140,6 +153,17 @@ export default class MultiSelect extends React.Component {
                     <div>{this.props.noteText}</div>
                 </div>
             );
+        }
+
+        const valueMap = {};
+        for (let i = 0; i < values.length; i++) {
+            valueMap[values[i].id] = true;
+        }
+
+        for (let i = options.length - 1; i >= 0; i--) {
+            if (valueMap[options[i].id]) {
+                options.splice(i, 1);
+            }
         }
 
         if (options && options.length > this.props.perPage) {
@@ -204,10 +228,7 @@ export default class MultiSelect extends React.Component {
                             className='btn btn-primary btn-sm'
                             onClick={this.props.handleSubmit}
                         >
-                            <FormattedMessage
-                                id='multiselect.go'
-                                defaultMessage='Go'
-                            />
+                            {buttonSubmitText}
                         </button>
                     </div>
                     <div className='multi-select__help'>
@@ -253,5 +274,6 @@ MultiSelect.propTypes = {
     handleSubmit: React.PropTypes.func,
     noteText: React.PropTypes.node,
     maxValues: React.PropTypes.number,
-    numRemainingText: React.PropTypes.node
+    numRemainingText: React.PropTypes.node,
+    buttonSubmitText: React.PropTypes.node
 };

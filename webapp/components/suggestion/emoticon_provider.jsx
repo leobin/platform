@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 import React from 'react';
@@ -55,7 +55,7 @@ export default class EmoticonProvider {
 
             if (partialName.length < MIN_EMOTICON_LENGTH) {
                 SuggestionStore.clearSuggestions(suggestionId);
-                return;
+                return false;
             }
 
             const matched = [];
@@ -117,6 +117,10 @@ export default class EmoticonProvider {
         if (hasSuggestions) {
             // force the selection to be cleared since the order of elements may have changed
             SuggestionStore.clearSelection(suggestionId);
+
+            return true;
         }
+
+        return false;
     }
 }

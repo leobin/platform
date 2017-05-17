@@ -1,7 +1,6 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
-import $ from 'jquery';
 import * as GlobalActions from 'actions/global_actions.jsx';
 import SearchStore from 'stores/search_store.jsx';
 import UserStore from 'stores/user_store.jsx';
@@ -31,10 +30,13 @@ export default class SearchBar extends React.Component {
         this.handleUserFocus = this.handleUserFocus.bind(this);
         this.handleClear = this.handleClear.bind(this);
         this.handleUserBlur = this.handleUserBlur.bind(this);
-        this.performSearch = this.performSearch.bind(this);
+        this.handleSearch = this.handleSearch.bind(this);
+        this.handleSearchOnSuccess = this.handleSearchOnSuccess.bind(this);
+        this.handleSearchOnError = this.handleSearchOnError.bind(this);
         this.handleSubmit = this.handleSubmit.bind(this);
         this.searchMentions = this.searchMentions.bind(this);
         this.getFlagged = this.getFlagged.bind(this);
+        this.handleKeyDown = this.handleKeyDown.bind(this);
 
         const state = this.getSearchTermStateFromStores();
         state.focused = false;
@@ -74,7 +76,7 @@ export default class SearchBar extends React.Component {
                 this.setState(newState);
             }
             if (doSearch) {
-                this.performSearch(newState.searchTerm, isMentionSearch);
+                this.handleSearch(newState.searchTerm, isMentionSearch);
             }
         }
     }
@@ -106,6 +108,10 @@ export default class SearchBar extends React.Component {
         });
     }
 
+    handleKeyDown() {
+        // This is just to prevent a JS error
+    }
+
     handleChange(e) {
         var term = e.target.value;
         SearchStore.storeSearchTerm(term);
@@ -125,7 +131,7 @@ export default class SearchBar extends React.Component {
         this.setState({focused: true});
     }
 
-    performSearch(terms, isMentionSearch) {
+    handleSearch(terms, isMentionSearch) {
         if (terms.length) {
             this.setState({
                 isSearching: true,
@@ -136,23 +142,35 @@ export default class SearchBar extends React.Component {
                 terms,
                 isMentionSearch,
                 () => {
-                    this.setState({isSearching: false});
-
-                    if (Utils.isMobile() && this.search) {
-                        this.search.value = '';
-                    }
+                    this.handleSearchOnSuccess();
                 },
                 () => {
-                    this.setState({isSearching: false});
+                    this.handleSearchOnError();
                 }
             );
         }
     }
 
+    handleSearchOnSuccess() {
+        if (this.mounted) {
+            this.setState({isSearching: false});
+
+            if (Utils.isMobile() && this.search) {
+                this.search.value = '';
+            }
+        }
+    }
+
+    handleSearchOnError() {
+        if (this.mounted) {
+            this.setState({isSearching: false});
+        }
+    }
+
     handleSubmit(e) {
         e.preventDefault();
-        this.performSearch(this.state.searchTerm.trim());
-        $(this.search).find('input').blur();
+        this.handleSearch(this.state.searchTerm.trim());
+        this.search.blur();
     }
 
     searchMentions(e) {
@@ -216,7 +234,10 @@ export default class SearchBar extends React.Component {
         );
 
         const flaggedTooltip = (
-            <Tooltip id='flaggedTooltip'>
+            <Tooltip
+                id='flaggedTooltip'
+                className='text-nowrap'
+            >
                 <FormattedMessage
                     id='channel_header.flagged'
                     defaultMessage='Flagged Posts'
@@ -304,10 +325,11 @@ export default class SearchBar extends React.Component {
                         onFocus={this.handleUserFocus}
                         onBlur={this.handleUserBlur}
                         onChange={this.handleChange}
+                        onKeyDown={this.handleKeyDown}
                         listComponent={SearchSuggestionList}
                         providers={this.suggestionProviders}
                         type='search'
-                        autoFocus={this.props.isFocus}
+                        autoFocus={this.props.isFocus && this.state.searchTerm === ''}
                     />
                     <div
                         className={clearClass}

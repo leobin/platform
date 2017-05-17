@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 package api
@@ -97,6 +97,18 @@ func TestUploadFile(t *testing.T) {
 	if info.PreviewPath != expectedPreviewPath {
 		t.Logf("file preview is saved in %v", info.PreviewPath)
 		t.Fatalf("file preview should've been saved in %v", expectedPreviewPath)
+	}
+
+	enableFileAttachments := *utils.Cfg.FileSettings.EnableFileAttachments
+	defer func() {
+		*utils.Cfg.FileSettings.EnableFileAttachments = enableFileAttachments
+	}()
+	*utils.Cfg.FileSettings.EnableFileAttachments = false
+
+	if data, err := readTestFile("test.png"); err != nil {
+		t.Fatal(err)
+	} else if _, err = Client.UploadPostAttachment(data, channel.Id, "test.png"); err == nil {
+		t.Fatal("should have errored")
 	}
 
 	// Wait a bit for files to ready

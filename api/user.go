@@ -1,13 +1,11 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 package api
 
 import (
-	"bytes"
 	b64 "encoding/base64"
 	"fmt"
-	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -36,8 +34,8 @@ func InitUser() {
 	BaseRoutes.Users.Handle("/logout", ApiAppHandler(logout)).Methods("POST")
 	BaseRoutes.Users.Handle("/revoke_session", ApiUserRequired(revokeSession)).Methods("POST")
 	BaseRoutes.Users.Handle("/attach_device", ApiUserRequired(attachDeviceId)).Methods("POST")
-	BaseRoutes.Users.Handle("/verify_email", ApiAppHandler(verifyEmail)).Methods("POST")
-	BaseRoutes.Users.Handle("/resend_verification", ApiAppHandler(resendVerification)).Methods("POST")
+	//DEPRICATED FOR SECURITY USE APIV4 BaseRoutes.Users.Handle("/verify_email", ApiAppHandler(verifyEmail)).Methods("POST")
+	//DEPRICATED FOR SECURITY USE APIV4 BaseRoutes.Users.Handle("/resend_verification", ApiAppHandler(resendVerification)).Methods("POST")
 	BaseRoutes.Users.Handle("/newimage", ApiUserRequired(uploadProfileImage)).Methods("POST")
 	BaseRoutes.Users.Handle("/me", ApiUserRequired(getMe)).Methods("GET")
 	BaseRoutes.Users.Handle("/initial_load", ApiAppHandler(getInitialLoad)).Methods("GET")
@@ -71,8 +69,6 @@ func InitUser() {
 
 	BaseRoutes.Root.Handle("/login/sso/saml", AppHandlerIndependent(loginWithSaml)).Methods("GET")
 	BaseRoutes.Root.Handle("/login/sso/saml", AppHandlerIndependent(completeSaml)).Methods("POST")
-
-	app.Srv.WebSocketRouter.Handle("user_typing", ApiWebSocketHandler(userTyping))
 }
 
 func createUser(c *Context, w http.ResponseWriter, r *http.Request) {
@@ -89,11 +85,11 @@ func createUser(c *Context, w http.ResponseWriter, r *http.Request) {
 	var ruser *model.User
 	var err *model.AppError
 	if len(hash) > 0 {
-		ruser, err = app.CreateUserWithHash(user, hash, r.URL.Query().Get("d"), c.GetSiteURL())
+		ruser, err = app.CreateUserWithHash(user, hash, r.URL.Query().Get("d"))
 	} else if len(inviteId) > 0 {
-		ruser, err = app.CreateUserWithInviteId(user, inviteId, c.GetSiteURL())
+		ruser, err = app.CreateUserWithInviteId(user, inviteId)
 	} else {
-		ruser, err = app.CreateUserFromSignup(user, c.GetSiteURL())
+		ruser, err = app.CreateUserFromSignup(user)
 	}
 
 	if err != nil {
@@ -132,52 +128,6 @@ func login(c *Context, w http.ResponseWriter, r *http.Request) {
 	user.Sanitize(map[string]bool{})
 
 	w.Write([]byte(user.ToJson()))
-}
-
-func LoginByOAuth(c *Context, w http.ResponseWriter, r *http.Request, service string, userData io.Reader) *model.User {
-	buf := bytes.Buffer{}
-	buf.ReadFrom(userData)
-
-	authData := ""
-	provider := einterfaces.GetOauthProvider(service)
-	if provider == nil {
-		c.Err = model.NewLocAppError("LoginByOAuth", "api.user.login_by_oauth.not_available.app_error",
-			map[string]interface{}{"Service": strings.Title(service)}, "")
-		return nil
-	} else {
-		authData = provider.GetAuthDataFromJson(bytes.NewReader(buf.Bytes()))
-	}
-
-	if len(authData) == 0 {
-		c.Err = model.NewLocAppError("LoginByOAuth", "api.user.login_by_oauth.parse.app_error",
-			map[string]interface{}{"Service": service}, "")
-		return nil
-	}
-
-	var user *model.User
-	var err *model.AppError
-	if user, err = app.GetUserByAuth(&authData, service); err != nil {
-		if err.Id == store.MISSING_AUTH_ACCOUNT_ERROR {
-			if user, err = app.CreateOAuthUser(service, bytes.NewReader(buf.Bytes()), "", c.GetSiteURL()); err != nil {
-				c.Err = err
-				return nil
-			}
-		}
-		c.Err = err
-		return nil
-	}
-
-	if err = app.UpdateOAuthUserAttrs(bytes.NewReader(buf.Bytes()), user, provider, service, c.siteURL); err != nil {
-		c.Err = err
-		return nil
-	}
-
-	doLogin(c, w, r, user, "")
-	if c.Err != nil {
-		return nil
-	}
-
-	return user
 }
 
 // User MUST be authenticated completely before calling Login
@@ -688,7 +638,7 @@ func updateUser(c *Context, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if ruser, err := app.UpdateUserAsUser(user, c.GetSiteURL(), c.IsSystemAdmin()); err != nil {
+	if ruser, err := app.UpdateUserAsUser(user, c.IsSystemAdmin()); err != nil {
 		c.Err = err
 		return
 	} else {
@@ -721,7 +671,7 @@ func updatePassword(c *Context, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := app.UpdatePasswordAsUser(userId, currentPassword, newPassword, c.GetSiteURL()); err != nil {
+	if err := app.UpdatePasswordAsUser(userId, currentPassword, newPassword); err != nil {
 		c.LogAudit("failed")
 		c.Err = err
 		return
@@ -803,7 +753,7 @@ func sendPasswordReset(c *Context, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if sent, err := app.SendPasswordReset(email, c.GetSiteURL()); err != nil {
+	if sent, err := app.SendPasswordReset(email, utils.GetSiteURL()); err != nil {
 		c.Err = err
 		return
 	} else if sent {
@@ -817,22 +767,22 @@ func resetPassword(c *Context, w http.ResponseWriter, r *http.Request) {
 	props := model.MapFromJson(r.Body)
 
 	code := props["code"]
-	if len(code) != model.PASSWORD_RECOVERY_CODE_SIZE {
+	if len(code) != model.TOKEN_SIZE {
 		c.SetInvalidParam("resetPassword", "code")
 		return
 	}
 
 	newPassword := props["new_password"]
 
-	c.LogAudit("attempt - code=" + code)
+	c.LogAudit("attempt - token=" + code)
 
-	if err := app.ResetPasswordFromCode(code, newPassword, c.GetSiteURL()); err != nil {
-		c.LogAudit("fail - code=" + code)
+	if err := app.ResetPasswordFromToken(code, newPassword); err != nil {
+		c.LogAudit("fail - token=" + code)
 		c.Err = err
 		return
 	}
 
-	c.LogAudit("success - code=" + code)
+	c.LogAudit("success - token=" + code)
 
 	rdata := map[string]string{}
 	rdata["status"] = "ok"
@@ -879,7 +829,7 @@ func updateUserNotify(c *Context, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ruser, err := app.UpdateUserNotifyProps(userId, props, c.GetSiteURL())
+	ruser, err := app.UpdateUserNotifyProps(userId, props)
 	if err != nil {
 		c.Err = err
 		return
@@ -916,41 +866,14 @@ func emailToOAuth(c *Context, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	c.LogAudit("attempt")
-
-	var user *model.User
-	var err *model.AppError
-	if user, err = app.GetUserByEmail(email); err != nil {
-		c.LogAudit("fail - couldn't get user")
+	link, err := app.SwitchEmailToOAuth(email, password, mfaToken, service)
+	if err != nil {
 		c.Err = err
 		return
 	}
 
-	if err := app.CheckPasswordAndAllCriteria(user, password, mfaToken); err != nil {
-		c.LogAuditWithUserId(user.Id, "failed - bad authentication")
-		c.Err = err
-		return
-	}
-
-	stateProps := map[string]string{}
-	stateProps["action"] = model.OAUTH_ACTION_EMAIL_TO_SSO
-	stateProps["email"] = email
-
-	m := map[string]string{}
-	if service == model.USER_AUTH_SERVICE_SAML {
-		m["follow_link"] = c.GetSiteURL() + "/login/sso/saml?action=" + model.OAUTH_ACTION_EMAIL_TO_SSO + "&email=" + email
-	} else {
-		if authUrl, err := GetAuthorizationCode(c, service, stateProps, ""); err != nil {
-			c.LogAuditWithUserId(user.Id, "fail - oauth issue")
-			c.Err = err
-			return
-		} else {
-			m["follow_link"] = authUrl
-		}
-	}
-
-	c.LogAuditWithUserId(user.Id, "success")
-	w.Write([]byte(model.MapToJson(m)))
+	c.LogAudit("success for email=" + email)
+	w.Write([]byte(model.MapToJson(map[string]string{"follow_link": link})))
 }
 
 func oauthToEmail(c *Context, w http.ResponseWriter, r *http.Request) {
@@ -968,51 +891,19 @@ func oauthToEmail(c *Context, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	c.LogAudit("attempt")
-
-	var user *model.User
-	var err *model.AppError
-	if user, err = app.GetUserByEmail(email); err != nil {
-		c.LogAudit("fail - couldn't get user")
+	link, err := app.SwitchOAuthToEmail(email, password, c.Session.UserId)
+	if err != nil {
 		c.Err = err
 		return
 	}
-
-	if user.Id != c.Session.UserId {
-		c.LogAudit("fail - user ids didn't match")
-		c.Err = model.NewLocAppError("oauthToEmail", "api.user.oauth_to_email.context.app_error", nil, "")
-		c.Err.StatusCode = http.StatusForbidden
-		return
-	}
-
-	if err := app.UpdatePassword(user, password); err != nil {
-		c.LogAudit("fail - database issue")
-		c.Err = err
-		return
-	}
-
-	go func() {
-		if err := app.SendSignInChangeEmail(user.Email, c.T("api.templates.signin_change_email.body.method_email"), user.Locale, c.GetSiteURL()); err != nil {
-			l4g.Error(err.Error())
-		}
-	}()
-
-	if err := app.RevokeAllSessions(c.Session.UserId); err != nil {
-		c.Err = err
-		return
-	}
-	c.LogAuditWithUserId(c.Session.UserId, "Revoked all sessions for user")
 
 	c.RemoveSessionCookie(w, r)
 	if c.Err != nil {
 		return
 	}
 
-	m := map[string]string{}
-	m["follow_link"] = "/login?extra=signin_change"
-
 	c.LogAudit("success")
-	w.Write([]byte(model.MapToJson(m)))
+	w.Write([]byte(model.MapToJson(map[string]string{"follow_link": link})))
 }
 
 func emailToLdap(c *Context, w http.ResponseWriter, r *http.Request) {
@@ -1046,55 +937,19 @@ func emailToLdap(c *Context, w http.ResponseWriter, r *http.Request) {
 
 	c.LogAudit("attempt")
 
-	var user *model.User
-	var err *model.AppError
-	if user, err = app.GetUserByEmail(email); err != nil {
-		c.LogAudit("fail - couldn't get user")
+	link, err := app.SwitchEmailToLdap(email, emailPassword, token, ldapId, ldapPassword)
+	if err != nil {
 		c.Err = err
 		return
 	}
-
-	if err := app.CheckPasswordAndAllCriteria(user, emailPassword, token); err != nil {
-		c.LogAuditWithUserId(user.Id, "failed - bad authentication")
-		c.Err = err
-		return
-	}
-
-	if err := app.RevokeAllSessions(user.Id); err != nil {
-		c.Err = err
-		return
-	}
-	c.LogAuditWithUserId(user.Id, "Revoked all sessions for user")
 
 	c.RemoveSessionCookie(w, r)
 	if c.Err != nil {
 		return
 	}
 
-	ldapInterface := einterfaces.GetLdapInterface()
-	if ldapInterface == nil {
-		c.Err = model.NewLocAppError("emailToLdap", "api.user.email_to_ldap.not_available.app_error", nil, "")
-		c.Err.StatusCode = http.StatusNotImplemented
-		return
-	}
-
-	if err := ldapInterface.SwitchToLdap(user.Id, ldapId, ldapPassword); err != nil {
-		c.LogAuditWithUserId(user.Id, "fail - ldap switch failed")
-		c.Err = err
-		return
-	}
-
-	go func() {
-		if err := app.SendSignInChangeEmail(user.Email, "AD/LDAP", user.Locale, c.GetSiteURL()); err != nil {
-			l4g.Error(err.Error())
-		}
-	}()
-
-	m := map[string]string{}
-	m["follow_link"] = "/login?extra=signin_change"
-
 	c.LogAudit("success")
-	w.Write([]byte(model.MapToJson(m)))
+	w.Write([]byte(model.MapToJson(map[string]string{"follow_link": link})))
 }
 
 func ldapToEmail(c *Context, w http.ResponseWriter, r *http.Request) {
@@ -1122,68 +977,22 @@ func ldapToEmail(c *Context, w http.ResponseWriter, r *http.Request) {
 
 	c.LogAudit("attempt")
 
-	var user *model.User
-	var err *model.AppError
-	if user, err = app.GetUserByEmail(email); err != nil {
-		c.LogAudit("fail - couldn't get user")
+	link, err := app.SwitchLdapToEmail(ldapPassword, token, email, emailPassword)
+	if err != nil {
 		c.Err = err
 		return
 	}
-
-	if user.AuthService != model.USER_AUTH_SERVICE_LDAP {
-		c.Err = model.NewLocAppError("ldapToEmail", "api.user.ldap_to_email.not_ldap_account.app_error", nil, "")
-		return
-	}
-
-	ldapInterface := einterfaces.GetLdapInterface()
-	if ldapInterface == nil || user.AuthData == nil {
-		c.Err = model.NewLocAppError("ldapToEmail", "api.user.ldap_to_email.not_available.app_error", nil, "")
-		c.Err.StatusCode = http.StatusNotImplemented
-		return
-	}
-
-	if err := ldapInterface.CheckPassword(*user.AuthData, ldapPassword); err != nil {
-		c.LogAuditWithUserId(user.Id, "fail - ldap authentication failed")
-		c.Err = err
-		return
-	}
-
-	if err := app.CheckUserMfa(user, token); err != nil {
-		c.LogAuditWithUserId(user.Id, "fail - mfa token failed")
-		c.Err = err
-		return
-	}
-
-	if err := app.UpdatePassword(user, emailPassword); err != nil {
-		c.LogAudit("fail - database issue")
-		c.Err = err
-		return
-	}
-
-	if err := app.RevokeAllSessions(user.Id); err != nil {
-		c.Err = err
-		return
-	}
-	c.LogAuditWithUserId(user.Id, "Revoked all sessions for user")
 
 	c.RemoveSessionCookie(w, r)
 	if c.Err != nil {
 		return
 	}
 
-	go func() {
-		if err := app.SendSignInChangeEmail(user.Email, c.T("api.templates.signin_change_email.body.method_email"), user.Locale, c.GetSiteURL()); err != nil {
-			l4g.Error(err.Error())
-		}
-	}()
-
-	m := map[string]string{}
-	m["follow_link"] = "/login?extra=signin_change"
-
 	c.LogAudit("success")
-	w.Write([]byte(model.MapToJson(m)))
+	w.Write([]byte(model.MapToJson(map[string]string{"follow_link": link})))
 }
 
+/* Disabling for security reasons. Use apiv4
 func verifyEmail(c *Context, w http.ResponseWriter, r *http.Request) {
 	props := model.MapFromJson(r.Body)
 
@@ -1226,42 +1035,24 @@ func resendVerification(c *Context, w http.ResponseWriter, r *http.Request) {
 		return
 	} else {
 		if _, err := app.GetStatus(user.Id); err != nil {
-			go app.SendVerifyEmail(user.Id, user.Email, user.Locale, c.GetSiteURL())
+			go app.SendVerifyEmail(user.Id, user.Email, user.Locale, utils.GetSiteURL())
 		} else {
-			go app.SendEmailChangeVerifyEmail(user.Id, user.Email, user.Locale, c.GetSiteURL())
+			go app.SendEmailChangeVerifyEmail(user.Id, user.Email, user.Locale, utils.GetSiteURL())
 		}
 	}
-}
+}*/
 
 func generateMfaSecret(c *Context, w http.ResponseWriter, r *http.Request) {
-	var user *model.User
-	var err *model.AppError
-	if user, err = app.GetUser(c.Session.UserId); err != nil {
-		c.Err = err
-		return
-	}
-
-	mfaInterface := einterfaces.GetMfaInterface()
-	if mfaInterface == nil {
-		c.Err = model.NewLocAppError("generateMfaSecret", "api.user.generate_mfa_qr.not_available.app_error", nil, "")
-		c.Err.StatusCode = http.StatusNotImplemented
-		return
-	}
-
-	secret, img, err := mfaInterface.GenerateSecret(user)
+	secret, err := app.GenerateMfaSecret(c.Session.UserId)
 	if err != nil {
 		c.Err = err
 		return
 	}
 
-	resp := map[string]string{}
-	resp["qr_code"] = b64.StdEncoding.EncodeToString(img)
-	resp["secret"] = secret
-
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
-	w.Write([]byte(model.MapToJson(resp)))
+	w.Write([]byte(secret.ToJson()))
 }
 
 func updateMfa(c *Context, w http.ResponseWriter, r *http.Request) {
@@ -1306,7 +1097,7 @@ func updateMfa(c *Context, w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if err := app.SendMfaChangeEmail(user.Email, activate, user.Locale, c.GetSiteURL()); err != nil {
+		if err := app.SendMfaChangeEmail(user.Email, activate, user.Locale, utils.GetSiteURL()); err != nil {
 			l4g.Error(err.Error())
 		}
 	}()
@@ -1350,7 +1141,7 @@ func loginWithSaml(c *Context, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	teamId, err := getTeamIdFromQuery(r.URL.Query())
+	teamId, err := app.GetTeamIdFromQuery(r.URL.Query())
 	if err != nil {
 		c.Err = err
 		return
@@ -1411,7 +1202,7 @@ func completeSaml(c *Context, w http.ResponseWriter, r *http.Request) {
 		relayProps = model.MapFromJson(strings.NewReader(stateStr))
 	}
 
-	if user, err := samlInterface.DoLogin(encodedXML, relayProps, c.GetSiteURL()); err != nil {
+	if user, err := samlInterface.DoLogin(encodedXML, relayProps); err != nil {
 		c.Err = err
 		c.Err.StatusCode = http.StatusFound
 		return
@@ -1436,7 +1227,7 @@ func completeSaml(c *Context, w http.ResponseWriter, r *http.Request) {
 			}
 			c.LogAuditWithUserId(user.Id, "Revoked all sessions for user")
 			go func() {
-				if err := app.SendSignInChangeEmail(user.Email, strings.Title(model.USER_AUTH_SERVICE_SAML)+" SSO", user.Locale, c.GetSiteURL()); err != nil {
+				if err := app.SendSignInChangeEmail(user.Email, strings.Title(model.USER_AUTH_SERVICE_SAML)+" SSO", user.Locale, utils.GetSiteURL()); err != nil {
 					l4g.Error(err.Error())
 				}
 			}()
@@ -1448,7 +1239,7 @@ func completeSaml(c *Context, w http.ResponseWriter, r *http.Request) {
 		}
 
 		if val, ok := relayProps["redirect_to"]; ok {
-			http.Redirect(w, r, c.GetSiteURL()+val, http.StatusFound)
+			http.Redirect(w, r, c.GetSiteURLHeader()+val, http.StatusFound)
 			return
 		}
 
@@ -1458,29 +1249,6 @@ func completeSaml(c *Context, w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, app.GetProtocol(r)+"://"+r.Host, http.StatusFound)
 		}
 	}
-}
-
-func userTyping(req *model.WebSocketRequest) (map[string]interface{}, *model.AppError) {
-	var ok bool
-	var channelId string
-	if channelId, ok = req.Data["channel_id"].(string); !ok || len(channelId) != 26 {
-		return nil, NewInvalidWebSocketParamError(req.Action, "channel_id")
-	}
-
-	var parentId string
-	if parentId, ok = req.Data["parent_id"].(string); !ok {
-		parentId = ""
-	}
-
-	omitUsers := make(map[string]bool, 1)
-	omitUsers[req.Session.UserId] = true
-
-	event := model.NewWebSocketEvent(model.WEBSOCKET_EVENT_TYPING, "", channelId, "", omitUsers)
-	event.Add("parent_id", parentId)
-	event.Add("user_id", req.Session.UserId)
-	go app.Publish(event)
-
-	return nil, nil
 }
 
 func sanitizeProfile(c *Context, user *model.User) *model.User {
@@ -1535,26 +1303,12 @@ func searchUsers(c *Context, w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var profiles []*model.User
-	var err *model.AppError
-	if props.InChannelId != "" {
-		profiles, err = app.SearchUsersInChannel(props.InChannelId, props.Term, searchOptions)
-	} else if props.NotInChannelId != "" {
-		profiles, err = app.SearchUsersNotInChannel(props.TeamId, props.NotInChannelId, props.Term, searchOptions)
-	} else {
-		profiles, err = app.SearchUsersInTeam(props.TeamId, props.Term, searchOptions)
-	}
-
-	if err != nil {
+	if profiles, err := app.SearchUsers(props, searchOptions, c.IsSystemAdmin()); err != nil {
 		c.Err = err
 		return
+	} else {
+		w.Write([]byte(model.UserListToJson(profiles)))
 	}
-
-	for _, p := range profiles {
-		sanitizeProfile(c, p)
-	}
-
-	w.Write([]byte(model.UserListToJson(profiles)))
 }
 
 func getProfilesByIds(c *Context, w http.ResponseWriter, r *http.Request) {
@@ -1604,18 +1358,10 @@ func autocompleteUsersInChannel(c *Context, w http.ResponseWriter, r *http.Reque
 		searchOptions[store.USER_SEARCH_OPTION_NAMES_ONLY] = true
 	}
 
-	autocomplete, err := app.AutocompleteUsersInChannel(teamId, channelId, term, searchOptions)
+	autocomplete, err := app.AutocompleteUsersInChannel(teamId, channelId, term, searchOptions, c.IsSystemAdmin())
 	if err != nil {
 		c.Err = err
 		return
-	}
-
-	for _, p := range autocomplete.InChannel {
-		sanitizeProfile(c, p)
-	}
-
-	for _, p := range autocomplete.OutOfChannel {
-		sanitizeProfile(c, p)
 	}
 
 	w.Write([]byte(autocomplete.ToJson()))
@@ -1642,14 +1388,10 @@ func autocompleteUsersInTeam(c *Context, w http.ResponseWriter, r *http.Request)
 		searchOptions[store.USER_SEARCH_OPTION_NAMES_ONLY] = true
 	}
 
-	autocomplete, err := app.AutocompleteUsersInTeam(teamId, term, searchOptions)
+	autocomplete, err := app.AutocompleteUsersInTeam(teamId, term, searchOptions, c.IsSystemAdmin())
 	if err != nil {
 		c.Err = err
 		return
-	}
-
-	for _, p := range autocomplete.InTeam {
-		sanitizeProfile(c, p)
 	}
 
 	w.Write([]byte(autocomplete.ToJson()))
@@ -1670,13 +1412,9 @@ func autocompleteUsers(c *Context, w http.ResponseWriter, r *http.Request) {
 	var profiles []*model.User
 	var err *model.AppError
 
-	if profiles, err = app.SearchUsersInTeam("", term, searchOptions); err != nil {
+	if profiles, err = app.SearchUsersInTeam("", term, searchOptions, c.IsSystemAdmin()); err != nil {
 		c.Err = err
 		return
-	}
-
-	for _, p := range profiles {
-		sanitizeProfile(c, p)
 	}
 
 	w.Write([]byte(model.UserListToJson(profiles)))

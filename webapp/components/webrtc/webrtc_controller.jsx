@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 import UserStore from 'stores/user_store.jsx';
@@ -322,7 +322,7 @@ export default class WebrtcController extends React.Component {
                 error: (
                     <FormattedMessage
                         id='webrtc.inProgress'
-                        defaultMessage='You have a call in progress. Please hangup first.'
+                        defaultMessage='You have a call in progress. Please hang up first.'
                     />
                 ),
                 errorType: ' warning'
@@ -408,7 +408,7 @@ export default class WebrtcController extends React.Component {
                 error: (
                     <FormattedMessage
                         id='webrtc.inProgress'
-                        defaultMessage='You have a call in progress. Please hangup first.'
+                        defaultMessage='You have a call in progress. Please hang up first.'
                     />
                 ),
                 errorType: ' warning'
@@ -1063,7 +1063,7 @@ export default class WebrtcController extends React.Component {
                             <title>
                                 <FormattedMessage
                                     id='webrtc.hangup'
-                                    defaultMessage='Hangup'
+                                    defaultMessage='Hang up'
                                 />
                             </title>
                         </circle>

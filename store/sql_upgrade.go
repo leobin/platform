@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 package store
@@ -15,6 +15,8 @@ import (
 )
 
 const (
+	VERSION_3_9_0 = "3.9.0"
+	VERSION_3_8_0 = "3.8.0"
 	VERSION_3_7_0 = "3.7.0"
 	VERSION_3_6_0 = "3.6.0"
 	VERSION_3_5_0 = "3.5.0"
@@ -41,11 +43,13 @@ func UpgradeDatabase(sqlStore *SqlStore) {
 	UpgradeDatabaseToVersion35(sqlStore)
 	UpgradeDatabaseToVersion36(sqlStore)
 	UpgradeDatabaseToVersion37(sqlStore)
+	UpgradeDatabaseToVersion38(sqlStore)
+	UpgradeDatabaseToVersion39(sqlStore)
 
 	// If the SchemaVersion is empty this this is the first time it has ran
 	// so lets set it to the current version.
 	if sqlStore.SchemaVersion == "" {
-		if result := <-sqlStore.system.Save(&model.System{Name: "Version", Value: model.CurrentVersion}); result.Err != nil {
+		if result := <-sqlStore.system.SaveOrUpdate(&model.System{Name: "Version", Value: model.CurrentVersion}); result.Err != nil {
 			l4g.Critical(result.Err.Error())
 			time.Sleep(time.Second)
 			os.Exit(EXIT_VERSION_SAVE_MISSING)
@@ -64,7 +68,7 @@ func UpgradeDatabase(sqlStore *SqlStore) {
 }
 
 func saveSchemaVersion(sqlStore *SqlStore, version string) {
-	if result := <-sqlStore.system.Update(&model.System{Name: "Version", Value: model.CurrentVersion}); result.Err != nil {
+	if result := <-sqlStore.system.Update(&model.System{Name: "Version", Value: version}); result.Err != nil {
 		l4g.Critical(result.Err.Error())
 		time.Sleep(time.Second)
 		os.Exit(EXIT_VERSION_SAVE)
@@ -238,5 +242,23 @@ func UpgradeDatabaseToVersion37(sqlStore *SqlStore) {
 		sqlStore.CreateColumnIfNotExists("Posts", "EditAt", " bigint", " bigint", "0")
 
 		saveSchemaVersion(sqlStore, VERSION_3_7_0)
+	}
+}
+
+func UpgradeDatabaseToVersion38(sqlStore *SqlStore) {
+	if shouldPerformUpgrade(sqlStore, VERSION_3_7_0, VERSION_3_8_0) {
+		// Add the IsPinned column to posts.
+		sqlStore.CreateColumnIfNotExists("Posts", "IsPinned", "boolean", "boolean", "0")
+
+		saveSchemaVersion(sqlStore, VERSION_3_8_0)
+	}
+}
+
+func UpgradeDatabaseToVersion39(sqlStore *SqlStore) {
+	if shouldPerformUpgrade(sqlStore, VERSION_3_8_0, VERSION_3_9_0) {
+		sqlStore.CreateColumnIfNotExists("OAuthAccessData", "Scope", "varchar(128)", "varchar(128)", model.DEFAULT_SCOPE)
+		sqlStore.RemoveTableIfExists("PasswordRecovery")
+
+		saveSchemaVersion(sqlStore, VERSION_3_9_0)
 	}
 }

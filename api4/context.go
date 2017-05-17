@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 package api4
@@ -6,6 +6,7 @@ package api4
 import (
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -19,14 +20,14 @@ import (
 )
 
 type Context struct {
-	Session   model.Session
-	Params    *ApiParams
-	Err       *model.AppError
-	T         goi18n.TranslateFunc
-	RequestId string
-	IpAddress string
-	Path      string
-	siteURL   string
+	Session       model.Session
+	Params        *ApiParams
+	Err           *model.AppError
+	T             goi18n.TranslateFunc
+	RequestId     string
+	IpAddress     string
+	Path          string
+	siteURLHeader string
 }
 
 func ApiHandler(h func(*Context, http.ResponseWriter, *http.Request)) http.Handler {
@@ -125,15 +126,10 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		isTokenFromQueryString = true
 	}
 
-	if utils.GetSiteURL() == "" {
-		protocol := app.GetProtocol(r)
-		c.SetSiteURL(protocol + "://" + r.Host)
-	} else {
-		c.SetSiteURL(utils.GetSiteURL())
-	}
+	c.SetSiteURLHeader(app.GetProtocol(r) + "://" + r.Host)
 
 	w.Header().Set(model.HEADER_REQUEST_ID, c.RequestId)
-	w.Header().Set(model.HEADER_VERSION_ID, fmt.Sprintf("%v.%v.%v.%v", model.CurrentVersion, model.BuildNumber, utils.CfgHash, utils.IsLicensed))
+	w.Header().Set(model.HEADER_VERSION_ID, fmt.Sprintf("%v.%v.%v.%v", model.CurrentVersion, model.BuildNumber, utils.ClientCfgHash, utils.IsLicensed))
 	if einterfaces.GetClusterInterface() != nil {
 		w.Header().Set(model.HEADER_CLUSTER_ID, einterfaces.GetClusterInterface().GetClusterId())
 	}
@@ -231,14 +227,14 @@ func (c *Context) LogError(err *model.AppError) {
 	if c.Path == "/api/v3/users/websocket" && err.StatusCode == 401 || err.Id == "web.check_browser_compatibility.app_error" {
 		c.LogDebug(err)
 	} else {
-		l4g.Error(utils.T("api.context.log.error"), c.Path, err.Where, err.StatusCode,
-			c.RequestId, c.Session.UserId, c.IpAddress, err.SystemMessage(utils.T), err.DetailedError)
+		l4g.Error(utils.TDefault("api.context.log.error"), c.Path, err.Where, err.StatusCode,
+			c.RequestId, c.Session.UserId, c.IpAddress, err.SystemMessage(utils.TDefault), err.DetailedError)
 	}
 }
 
 func (c *Context) LogDebug(err *model.AppError) {
-	l4g.Debug(utils.T("api.context.log.error"), c.Path, err.Where, err.StatusCode,
-		c.RequestId, c.Session.UserId, c.IpAddress, err.SystemMessage(utils.T), err.DetailedError)
+	l4g.Debug(utils.TDefault("api.context.log.error"), c.Path, err.Where, err.StatusCode,
+		c.RequestId, c.Session.UserId, c.IpAddress, err.SystemMessage(utils.TDefault), err.DetailedError)
 }
 
 func (c *Context) IsSystemAdmin() bool {
@@ -247,8 +243,7 @@ func (c *Context) IsSystemAdmin() bool {
 
 func (c *Context) SessionRequired() {
 	if len(c.Session.UserId) == 0 {
-		c.Err = model.NewLocAppError("", "api.context.session_expired.app_error", nil, "UserRequired")
-		c.Err.StatusCode = http.StatusUnauthorized
+		c.Err = model.NewAppError("", "api.context.session_expired.app_error", nil, "UserRequired", http.StatusUnauthorized)
 		return
 	}
 }
@@ -276,9 +271,13 @@ func (c *Context) MfaRequired() {
 			return
 		}
 
+		// Special case to let user get themself
+		if c.Path == "/api/v4/users/me" {
+			return
+		}
+
 		if !user.MfaActive {
-			c.Err = model.NewLocAppError("", "api.context.mfa_required.app_error", nil, "MfaRequired")
-			c.Err.StatusCode = http.StatusUnauthorized
+			c.Err = model.NewAppError("", "api.context.mfa_required.app_error", nil, "MfaRequired", http.StatusForbidden)
 			return
 		}
 	}
@@ -320,17 +319,21 @@ func (c *Context) SetPermissionError(permission *model.Permission) {
 	c.Err.StatusCode = http.StatusForbidden
 }
 
-func (c *Context) SetSiteURL(url string) {
-	c.siteURL = strings.TrimRight(url, "/")
+func (c *Context) SetSiteURLHeader(url string) {
+	c.siteURLHeader = strings.TrimRight(url, "/")
 }
 
-func (c *Context) GetSiteURL() string {
-	return c.siteURL
+func (c *Context) GetSiteURLHeader() string {
+	return c.siteURLHeader
 }
 
 func (c *Context) RequireUserId() *Context {
 	if c.Err != nil {
 		return c
+	}
+
+	if c.Params.UserId == model.ME {
+		c.Params.UserId = c.Session.UserId
 	}
 
 	if len(c.Params.UserId) != 26 {
@@ -384,6 +387,17 @@ func (c *Context) RequirePostId() *Context {
 	return c
 }
 
+func (c *Context) RequireAppId() *Context {
+	if c.Err != nil {
+		return c
+	}
+
+	if len(c.Params.AppId) != 26 {
+		c.SetInvalidUrlParam("app_id")
+	}
+	return c
+}
+
 func (c *Context) RequireFileId() *Context {
 	if c.Err != nil {
 		return c
@@ -393,6 +407,28 @@ func (c *Context) RequireFileId() *Context {
 		c.SetInvalidUrlParam("file_id")
 	}
 
+	return c
+}
+
+func (c *Context) RequireReportId() *Context {
+	if c.Err != nil {
+		return c
+	}
+
+	if len(c.Params.ReportId) != 26 {
+		c.SetInvalidUrlParam("report_id")
+	}
+	return c
+}
+
+func (c *Context) RequireEmojiId() *Context {
+	if c.Err != nil {
+		return c
+	}
+
+	if len(c.Params.EmojiId) != 26 {
+		c.SetInvalidUrlParam("emoji_id")
+	}
 	return c
 }
 
@@ -437,8 +473,20 @@ func (c *Context) RequireCategory() *Context {
 		return c
 	}
 
-	if !model.IsValidAlphaNum(c.Params.Category, true) {
+	if !model.IsValidAlphaNumHyphenUnderscore(c.Params.Category, true) {
 		c.SetInvalidUrlParam("category")
+	}
+
+	return c
+}
+
+func (c *Context) RequireService() *Context {
+	if c.Err != nil {
+		return c
+	}
+
+	if len(c.Params.Service) == 0 {
+		c.SetInvalidUrlParam("service")
 	}
 
 	return c
@@ -449,9 +497,46 @@ func (c *Context) RequirePreferenceName() *Context {
 		return c
 	}
 
-	if !model.IsValidAlphaNum(c.Params.PreferenceName, true) {
+	if !model.IsValidAlphaNumHyphenUnderscore(c.Params.PreferenceName, true) {
 		c.SetInvalidUrlParam("preference_name")
 	}
 
+	return c
+}
+
+func (c *Context) RequireEmojiName() *Context {
+	if c.Err != nil {
+		return c
+	}
+
+	validName := regexp.MustCompile(`^[a-zA-Z0-9\-\+_]+$`)
+
+	if len(c.Params.EmojiName) == 0 || len(c.Params.EmojiName) > 64 || !validName.MatchString(c.Params.EmojiName) {
+		c.SetInvalidUrlParam("emoji_name")
+	}
+
+	return c
+}
+
+func (c *Context) RequireHookId() *Context {
+	if c.Err != nil {
+		return c
+	}
+
+	if len(c.Params.HookId) != 26 {
+		c.SetInvalidUrlParam("hook_id")
+	}
+
+	return c
+}
+
+func (c *Context) RequireCommandId() *Context {
+	if c.Err != nil {
+		return c
+	}
+
+	if len(c.Params.CommandId) != 26 {
+		c.SetInvalidUrlParam("command_id")
+	}
 	return c
 }

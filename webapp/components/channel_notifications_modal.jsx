@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 import SettingItemMin from 'components/setting_item_min.jsx';
@@ -135,6 +135,7 @@ export default class ChannelNotificationsModal extends React.Component {
                     <div className='radio'>
                         <label>
                             <input
+                                id='channelNotificationGlobalDefault'
                                 type='radio'
                                 name='desktopNotificationLevel'
                                 checked={notifyActive[0]}
@@ -153,6 +154,7 @@ export default class ChannelNotificationsModal extends React.Component {
                     <div className='radio'>
                         <label>
                             <input
+                                id='channelNotificationAllActivity'
                                 type='radio'
                                 name='desktopNotificationLevel'
                                 checked={notifyActive[1]}
@@ -165,6 +167,7 @@ export default class ChannelNotificationsModal extends React.Component {
                     <div className='radio'>
                         <label>
                             <input
+                                id='channelNotificationMentions'
                                 type='radio'
                                 name='desktopNotificationLevel'
                                 checked={notifyActive[2]}
@@ -177,6 +180,7 @@ export default class ChannelNotificationsModal extends React.Component {
                     <div className='radio'>
                         <label>
                             <input
+                                id='channelNotificationNever'
                                 type='radio'
                                 name='desktopNotificationLevel'
                                 checked={notifyActive[3]}
@@ -190,6 +194,9 @@ export default class ChannelNotificationsModal extends React.Component {
 
             const handleUpdateSection = function updateSection(e) {
                 this.updateSection('');
+                this.setState({
+                    notifyLevel: this.props.channelMember.notify_props.desktop
+                });
                 e.preventDefault();
             }.bind(this);
 
@@ -287,6 +294,7 @@ export default class ChannelNotificationsModal extends React.Component {
                     <div className='radio'>
                         <label>
                             <input
+                                id='channelUnreadAll'
                                 type='radio'
                                 name='markUnreadLevel'
                                 checked={this.state.unreadLevel === 'all'}
@@ -302,6 +310,7 @@ export default class ChannelNotificationsModal extends React.Component {
                     <div className='radio'>
                         <label>
                             <input
+                                id='channelUnreadMentions'
                                 type='radio'
                                 name='markUnreadLevel'
                                 checked={this.state.unreadLevel === 'mention'}
@@ -316,6 +325,9 @@ export default class ChannelNotificationsModal extends React.Component {
 
             const handleUpdateSection = function handleUpdateSection(e) {
                 this.updateSection('');
+                this.setState({
+                    unreadLevel: this.props.channelMember.notify_props.mark_unread
+                });
                 e.preventDefault();
             }.bind(this);
 
@@ -354,6 +366,9 @@ export default class ChannelNotificationsModal extends React.Component {
 
             const handleUpdateSection = function handleUpdateSection(e) {
                 this.updateSection('markUnreadLevel');
+                this.setState({
+                    unreadLevel: this.props.channelMember.notify_props.mark_unread
+                });
                 e.preventDefault();
             }.bind(this);
 
@@ -459,6 +474,7 @@ export default class ChannelNotificationsModal extends React.Component {
                     <div className='radio'>
                         <label>
                             <input
+                                id='channelPushNotificationGlobalDefault'
                                 type='radio'
                                 name='pushNotificationLevel'
                                 checked={notifyActive[0]}
@@ -477,6 +493,7 @@ export default class ChannelNotificationsModal extends React.Component {
                     <div className='radio'>
                         <label>
                             <input
+                                id='channelPushNotificationAllActivity'
                                 type='radio'
                                 name='pushNotificationLevel'
                                 checked={notifyActive[1]}
@@ -489,6 +506,7 @@ export default class ChannelNotificationsModal extends React.Component {
                     <div className='radio'>
                         <label>
                             <input
+                                id='channelPushNotificationMentions'
                                 type='radio'
                                 name='pushNotificationLevel'
                                 checked={notifyActive[2]}
@@ -501,6 +519,7 @@ export default class ChannelNotificationsModal extends React.Component {
                     <div className='radio'>
                         <label>
                             <input
+                                id='channelPushNotificationNever'
                                 type='radio'
                                 name='pushNotificationLevel'
                                 checked={notifyActive[3]}
@@ -514,6 +533,9 @@ export default class ChannelNotificationsModal extends React.Component {
 
             const handleUpdateSection = function updateSection(e) {
                 this.updateSection('');
+                this.setState({
+                    pushLevel: this.props.channelMember.notify_props.push || 'default'
+                });
                 e.preventDefault();
             }.bind(this);
 

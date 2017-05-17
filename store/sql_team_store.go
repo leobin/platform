@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 package store
@@ -246,6 +246,48 @@ func (s SqlTeamStore) SearchByName(name string) StoreChannel {
 
 		if _, err := s.GetReplica().Select(&teams, "SELECT * FROM Teams WHERE Name LIKE :Name", map[string]interface{}{"Name": name + "%"}); err != nil {
 			result.Err = model.NewLocAppError("SqlTeamStore.SearchByName", "store.sql_team.get_by_name.app_error", nil, "name="+name+", "+err.Error())
+		}
+
+		result.Data = teams
+
+		storeChannel <- result
+		close(storeChannel)
+	}()
+
+	return storeChannel
+}
+
+func (s SqlTeamStore) SearchAll(term string) StoreChannel {
+	storeChannel := make(StoreChannel, 1)
+
+	go func() {
+		result := StoreResult{}
+
+		var teams []*model.Team
+
+		if _, err := s.GetReplica().Select(&teams, "SELECT * FROM Teams WHERE Name LIKE :Term OR DisplayName LIKE :Term", map[string]interface{}{"Term": term + "%"}); err != nil {
+			result.Err = model.NewLocAppError("SqlTeamStore.SearchAll", "store.sql_team.search_all_team.app_error", nil, "term="+term+", "+err.Error())
+		}
+
+		result.Data = teams
+
+		storeChannel <- result
+		close(storeChannel)
+	}()
+
+	return storeChannel
+}
+
+func (s SqlTeamStore) SearchOpen(term string) StoreChannel {
+	storeChannel := make(StoreChannel, 1)
+
+	go func() {
+		result := StoreResult{}
+
+		var teams []*model.Team
+
+		if _, err := s.GetReplica().Select(&teams, "SELECT * FROM Teams WHERE Type = 'O' AND (Name LIKE :Term OR DisplayName LIKE :Term)", map[string]interface{}{"Term": term + "%"}); err != nil {
+			result.Err = model.NewLocAppError("SqlTeamStore.SearchOpen", "store.sql_team.search_open_team.app_error", nil, "term="+term+", "+err.Error())
 		}
 
 		result.Data = teams
@@ -663,7 +705,7 @@ func (s SqlTeamStore) GetTeamsForUser(userId string) StoreChannel {
 	return storeChannel
 }
 
-func (s SqlTeamStore) GetTeamsUnreadForUser(teamId, userId string) StoreChannel {
+func (s SqlTeamStore) GetChannelUnreadsForAllTeams(excludeTeamId, userId string) StoreChannel {
 	storeChannel := make(StoreChannel, 1)
 
 	go func() {
@@ -672,15 +714,50 @@ func (s SqlTeamStore) GetTeamsUnreadForUser(teamId, userId string) StoreChannel 
 		var data []*model.ChannelUnread
 		_, err := s.GetReplica().Select(&data,
 			`SELECT
-				Channels.TeamId, Channels.TotalMsgCount, ChannelMembers.MsgCount, ChannelMembers.MentionCount, ChannelMembers.NotifyProps
+				Channels.TeamId TeamId, Channels.Id ChannelId, (Channels.TotalMsgCount - ChannelMembers.MsgCount) MsgCount, ChannelMembers.MentionCount MentionCount, ChannelMembers.NotifyProps NotifyProps
 			FROM
 				Channels, ChannelMembers
 			WHERE
-				Id = ChannelId AND UserId = :UserId AND DeleteAt = 0 AND TeamId != :TeamId`,
-			map[string]interface{}{"UserId": userId, "TeamId": teamId})
+				Id = ChannelId
+                AND UserId = :UserId
+                AND DeleteAt = 0
+                AND TeamId != :TeamId`,
+			map[string]interface{}{"UserId": userId, "TeamId": excludeTeamId})
 
 		if err != nil {
-			result.Err = model.NewLocAppError("SqlTeamStore.GetTeamsUnreadForUser", "store.sql_team.get_unread.app_error", nil, "userId="+userId+" "+err.Error())
+			result.Err = model.NewLocAppError("SqlTeamStore.GetChannelUnreadsForAllTeams", "store.sql_team.get_unread.app_error", nil, "userId="+userId+" "+err.Error())
+		} else {
+			result.Data = data
+		}
+
+		storeChannel <- result
+		close(storeChannel)
+	}()
+
+	return storeChannel
+}
+
+func (s SqlTeamStore) GetChannelUnreadsForTeam(teamId, userId string) StoreChannel {
+	storeChannel := make(StoreChannel, 1)
+
+	go func() {
+		result := StoreResult{}
+
+		var data []*model.ChannelUnread
+		_, err := s.GetReplica().Select(&data,
+			`SELECT
+				Channels.TeamId TeamId, Channels.Id ChannelId, (Channels.TotalMsgCount - ChannelMembers.MsgCount) MsgCount, ChannelMembers.MentionCount MentionCount, ChannelMembers.NotifyProps NotifyProps
+			FROM
+				Channels, ChannelMembers
+			WHERE
+				Id = ChannelId
+                AND UserId = :UserId
+                AND TeamId = :TeamId
+                AND DeleteAt = 0`,
+			map[string]interface{}{"TeamId": teamId, "UserId": userId})
+
+		if err != nil {
+			result.Err = model.NewLocAppError("SqlTeamStore.GetChannelUnreadsForTeam", "store.sql_team.get_unread.app_error", nil, "teamId="+teamId+" "+err.Error())
 		} else {
 			result.Data = data
 		}

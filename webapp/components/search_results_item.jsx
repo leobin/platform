@@ -1,9 +1,10 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 import $ from 'jquery';
 import PostMessageContainer from 'components/post_view/components/post_message_container.jsx';
 import UserProfile from './user_profile.jsx';
+import FileAttachmentListContainer from './file_attachment_list_container.jsx';
 import ProfilePicture from './profile_picture.jsx';
 
 import TeamStore from 'stores/team_store.jsx';
@@ -158,7 +159,17 @@ export default class SearchResultsItem extends React.Component {
         let compactClass = '';
         const profilePicContainer = (<div className='post__img'>{profilePic}</div>);
         if (this.props.compactDisplay) {
-            compactClass = 'post--compact';
+            compactClass = ' post--compact';
+        }
+
+        let fileAttachment = null;
+        if (post.file_ids && post.file_ids.length > 0) {
+            fileAttachment = (
+                <FileAttachmentListContainer
+                    post={post}
+                    compactDisplay={this.props.compactDisplay}
+                />
+            );
         }
 
         let message;
@@ -289,6 +300,18 @@ export default class SearchResultsItem extends React.Component {
             );
         }
 
+        let pinnedBadge;
+        if (post.is_pinned) {
+            pinnedBadge = (
+                <span className='post__pinned-badge'>
+                    <FormattedMessage
+                        id='post_info.pinned'
+                        defaultMessage='Pinned'
+                    />
+                </span>
+            );
+        }
+
         return (
             <div className='search-item__container'>
                 <div className='date-separator'>
@@ -322,12 +345,14 @@ export default class SearchResultsItem extends React.Component {
                                 {botIndicator}
                                 <li className='col'>
                                     {this.renderTimeTag(post)}
+                                    {pinnedBadge}
                                     {flagContent}
                                 </li>
                                 {rhsControls}
                             </ul>
                             <div className='search-item-snippet post__body'>
                                 {message}
+                                {fileAttachment}
                             </div>
                         </div>
                     </div>

@@ -16,7 +16,11 @@ func doLoadConfig(filename string) (err string) {
 		}
 	}()
 	utils.TranslationsPreInit()
+	utils.EnableConfigFromEnviromentVars()
 	utils.LoadConfig(filename)
+	utils.InitializeConfigWatch()
+	utils.EnableConfigWatch()
+
 	return ""
 }
 

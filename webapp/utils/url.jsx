@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 export function cleanUpUrlable(input) {
@@ -18,10 +18,6 @@ export function getShortenedURL(url = '', getLength = 27) {
 }
 
 export function getSiteURL() {
-    if (global.mm_config.SiteURL) {
-        return global.mm_config.SiteURL;
-    }
-
     if (window.location.origin) {
         return window.location.origin;
     }

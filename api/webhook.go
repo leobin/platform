@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 package api
@@ -374,7 +374,7 @@ func incomingWebhook(c *Context, w http.ResponseWriter, r *http.Request) {
 
 	parsedRequest := model.IncomingWebhookRequestFromJson(payload)
 
-	err := app.HandleIncomingWebhook(id, parsedRequest, c.GetSiteURL())
+	err := app.HandleIncomingWebhook(id, parsedRequest)
 	if err != nil {
 		c.Err = err
 		return

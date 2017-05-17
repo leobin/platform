@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 package store
@@ -42,7 +42,7 @@ type Store interface {
 	Command() CommandStore
 	Preference() PreferenceStore
 	License() LicenseStore
-	PasswordRecovery() PasswordRecoveryStore
+	Token() TokenStore
 	Emoji() EmojiStore
 	Status() StatusStore
 	FileInfo() FileInfoStore
@@ -52,6 +52,7 @@ type Store interface {
 	DropAllTables()
 	TotalMasterDbConnections() int
 	TotalReadDbConnections() int
+	TotalSearchDbConnections() int
 }
 
 type TeamStore interface {
@@ -61,6 +62,8 @@ type TeamStore interface {
 	Get(id string) StoreChannel
 	GetByName(name string) StoreChannel
 	SearchByName(name string) StoreChannel
+	SearchAll(term string) StoreChannel
+	SearchOpen(term string) StoreChannel
 	GetAll() StoreChannel
 	GetAllPage(offset int, limit int) StoreChannel
 	GetAllTeamListing() StoreChannel
@@ -77,7 +80,8 @@ type TeamStore interface {
 	GetTotalMemberCount(teamId string) StoreChannel
 	GetActiveMemberCount(teamId string) StoreChannel
 	GetTeamsForUser(userId string) StoreChannel
-	GetTeamsUnreadForUser(teamId, userId string) StoreChannel
+	GetChannelUnreadsForAllTeams(excludeTeamId, userId string) StoreChannel
+	GetChannelUnreadsForTeam(teamId, userId string) StoreChannel
 	RemoveMember(teamId string, userId string) StoreChannel
 	RemoveAllMembersByTeam(teamId string) StoreChannel
 	RemoveAllMembersByUser(userId string) StoreChannel
@@ -101,6 +105,8 @@ type ChannelStore interface {
 	GetDeletedByName(team_id string, name string) StoreChannel
 	GetChannels(teamId string, userId string) StoreChannel
 	GetMoreChannels(teamId string, userId string, offset int, limit int) StoreChannel
+	GetPublicChannelsForTeam(teamId string, offset int, limit int) StoreChannel
+	GetPublicChannelsByIdsForTeam(teamId string, channelIds []string) StoreChannel
 	GetChannelCounts(teamId string, userId string) StoreChannel
 	GetTeamChannels(teamId string) StoreChannel
 	GetAll(teamId string) StoreChannel
@@ -118,11 +124,11 @@ type ChannelStore interface {
 	InvalidateMemberCount(channelId string)
 	GetMemberCountFromCache(channelId string) int64
 	GetMemberCount(channelId string, allowFromCache bool) StoreChannel
+	GetPinnedPosts(channelId string) StoreChannel
 	RemoveMember(channelId string, userId string) StoreChannel
 	PermanentDeleteMembersByUser(userId string) StoreChannel
 	PermanentDeleteMembersByChannel(channelId string) StoreChannel
 	UpdateLastViewedAt(channelIds []string, userId string) StoreChannel
-	SetLastViewedAt(channelId string, userId string, newLastViewedAt int64) StoreChannel
 	IncrementMentionCount(channelId string, userId string) StoreChannel
 	AnalyticsTypeCount(teamId string, channelType string) StoreChannel
 	ExtraUpdateByUser(userId string, time int64) StoreChannel
@@ -131,6 +137,7 @@ type ChannelStore interface {
 	SearchMore(userId string, teamId string, term string) StoreChannel
 	GetMembersByIds(channelId string, userIds []string) StoreChannel
 	AnalyticsDeletedTypeCount(teamId string, channelType string) StoreChannel
+	GetChannelUnread(channelId, userId string) StoreChannel
 }
 
 type PostStore interface {
@@ -143,6 +150,8 @@ type PostStore interface {
 	PermanentDeleteByChannel(channelId string) StoreChannel
 	GetPosts(channelId string, offset int, limit int, allowFromCache bool) StoreChannel
 	GetFlaggedPosts(userId string, offset int, limit int) StoreChannel
+	GetFlaggedPostsForTeam(userId, teamId string, offset int, limit int) StoreChannel
+	GetFlaggedPostsForChannel(userId, channelId string, offset int, limit int) StoreChannel
 	GetPostsBefore(channelId string, postId string, numPosts int, offset int) StoreChannel
 	GetPostsAfter(channelId string, postId string, numPosts int, offset int) StoreChannel
 	GetPostsSince(channelId string, time int64, allowFromCache bool) StoreChannel
@@ -172,6 +181,7 @@ type UserStore interface {
 	GetProfilesInChannel(channelId string, offset int, limit int) StoreChannel
 	GetAllProfilesInChannel(channelId string, allowFromCache bool) StoreChannel
 	GetProfilesNotInChannel(teamId string, channelId string, offset int, limit int) StoreChannel
+	GetProfilesWithoutTeam(offset int, limit int) StoreChannel
 	GetProfilesByUsernames(usernames []string, teamId string) StoreChannel
 	GetAllProfiles(offset int, limit int) StoreChannel
 	GetProfiles(teamId string, offset int, limit int) StoreChannel
@@ -195,10 +205,14 @@ type UserStore interface {
 	GetUnreadCountForChannel(userId string, channelId string) StoreChannel
 	GetRecentlyActiveUsersForTeam(teamId string) StoreChannel
 	Search(teamId string, term string, options map[string]bool) StoreChannel
+	SearchNotInTeam(notInTeamId string, term string, options map[string]bool) StoreChannel
 	SearchInChannel(channelId string, term string, options map[string]bool) StoreChannel
 	SearchNotInChannel(teamId string, channelId string, term string, options map[string]bool) StoreChannel
+	SearchWithoutTeam(term string, options map[string]bool) StoreChannel
 	AnalyticsGetInactiveUsersCount() StoreChannel
 	AnalyticsGetSystemAdminCount() StoreChannel
+	GetProfilesNotInTeam(teamId string, offset int, limit int) StoreChannel
+	GetEtagForProfilesNotInTeam(teamId string) StoreChannel
 }
 
 type SessionStore interface {
@@ -225,7 +239,7 @@ type ComplianceStore interface {
 	Save(compliance *model.Compliance) StoreChannel
 	Update(compliance *model.Compliance) StoreChannel
 	Get(id string) StoreChannel
-	GetAll() StoreChannel
+	GetAll(offset, limit int) StoreChannel
 	ComplianceExport(compliance *model.Compliance) StoreChannel
 }
 
@@ -233,9 +247,9 @@ type OAuthStore interface {
 	SaveApp(app *model.OAuthApp) StoreChannel
 	UpdateApp(app *model.OAuthApp) StoreChannel
 	GetApp(id string) StoreChannel
-	GetAppByUser(userId string) StoreChannel
-	GetApps() StoreChannel
-	GetAuthorizedApps(userId string) StoreChannel
+	GetAppByUser(userId string, offset, limit int) StoreChannel
+	GetApps(offset, limit int) StoreChannel
+	GetAuthorizedApps(userId string, offset, limit int) StoreChannel
 	DeleteApp(id string) StoreChannel
 	SaveAuthData(authData *model.AuthData) StoreChannel
 	GetAuthData(code string) StoreChannel
@@ -270,8 +284,9 @@ type WebhookStore interface {
 
 	SaveOutgoing(webhook *model.OutgoingWebhook) StoreChannel
 	GetOutgoing(id string) StoreChannel
-	GetOutgoingByChannel(channelId string) StoreChannel
-	GetOutgoingByTeam(teamId string) StoreChannel
+	GetOutgoingList(offset, limit int) StoreChannel
+	GetOutgoingByChannel(channelId string, offset, limit int) StoreChannel
+	GetOutgoingByTeam(teamId string, offset, limit int) StoreChannel
 	DeleteOutgoing(webhookId string, time int64) StoreChannel
 	PermanentDeleteOutgoingByUser(userId string) StoreChannel
 	UpdateOutgoing(hook *model.OutgoingWebhook) StoreChannel
@@ -308,11 +323,11 @@ type LicenseStore interface {
 	Get(id string) StoreChannel
 }
 
-type PasswordRecoveryStore interface {
-	SaveOrUpdate(recovery *model.PasswordRecovery) StoreChannel
-	Delete(userId string) StoreChannel
-	Get(userId string) StoreChannel
-	GetByCode(code string) StoreChannel
+type TokenStore interface {
+	Save(recovery *model.Token) StoreChannel
+	Delete(token string) StoreChannel
+	GetByToken(token string) StoreChannel
+	Cleanup()
 }
 
 type EmojiStore interface {

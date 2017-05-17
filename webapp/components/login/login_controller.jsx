@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 import LoginMfa from './components/login_mfa.jsx';
@@ -89,7 +89,7 @@ export default class LoginController extends React.Component {
         }
 
         // don't trim the password since we support spaces in passwords
-        loginId = loginId.trim();
+        loginId = loginId.trim().toLowerCase();
 
         if (!loginId) {
             // it's slightly weird to be constructing the message ID, but it's a bit nicer than triply nested if statements
@@ -209,19 +209,15 @@ export default class LoginController extends React.Component {
     }
 
     finishSignin(team) {
-        GlobalActions.emitInitialLoad(
-            () => {
-                const query = this.props.location.query;
-                GlobalActions.loadDefaultLocale();
-                if (query.redirect_to) {
-                    browserHistory.push(query.redirect_to);
-                } else if (team) {
-                    browserHistory.push(`/${team.name}`);
-                } else {
-                    GlobalActions.redirectUserToDefaultTeam();
-                }
-            }
-        );
+        const query = this.props.location.query;
+        GlobalActions.loadCurrentLocale();
+        if (query.redirect_to) {
+            browserHistory.push(query.redirect_to);
+        } else if (team) {
+            browserHistory.push(`/${team.name}`);
+        } else {
+            GlobalActions.redirectUserToDefaultTeam();
+        }
     }
 
     handleLoginIdChange(e) {
@@ -413,6 +409,7 @@ export default class LoginController extends React.Component {
                         </div>
                         <div className='form-group'>
                             <button
+                                id='loginButton'
                                 type='submit'
                                 className='btn btn-primary'
                             >
@@ -436,6 +433,7 @@ export default class LoginController extends React.Component {
                             defaultMessage="Don't have an account? "
                         />
                         <Link
+                            id='signup'
                             to={'/signup_user_complete' + this.props.location.search}
                             className='signup-team-login'
                         >
@@ -495,12 +493,14 @@ export default class LoginController extends React.Component {
                     key='gitlab'
                     href={Client.getOAuthRoute() + '/gitlab/login' + this.props.location.search}
                 >
-                    <span className='icon'/>
                     <span>
-                        <FormattedMessage
-                            id='login.gitlab'
-                            defaultMessage='GitLab'
-                        />
+                        <span className='icon'/>
+                        <span>
+                            <FormattedMessage
+                                id='login.gitlab'
+                                defaultMessage='GitLab'
+                            />
+                        </span>
                     </span>
                 </a>
             );
@@ -513,12 +513,14 @@ export default class LoginController extends React.Component {
                     key='google'
                     href={Client.getOAuthRoute() + '/google/login' + this.props.location.search}
                 >
-                    <span className='icon'/>
                     <span>
-                        <FormattedMessage
-                            id='login.google'
-                            defaultMessage='Google Apps'
-                        />
+                        <span className='icon'/>
+                        <span>
+                            <FormattedMessage
+                                id='login.google'
+                                defaultMessage='Google Apps'
+                            />
+                        </span>
                     </span>
                 </a>
             );
@@ -531,12 +533,14 @@ export default class LoginController extends React.Component {
                     key='office365'
                     href={Client.getOAuthRoute() + '/office365/login' + this.props.location.search}
                 >
-                    <span className='icon'/>
                     <span>
-                        <FormattedMessage
-                            id='login.office365'
-                            defaultMessage='Office 365'
-                        />
+                        <span className='icon'/>
+                        <span>
+                            <FormattedMessage
+                                id='login.office365'
+                                defaultMessage='Office 365'
+                            />
+                        </span>
                     </span>
                 </a>
             );
@@ -549,9 +553,11 @@ export default class LoginController extends React.Component {
                     key='saml'
                     href={'/login/sso/saml' + this.props.location.search}
                 >
-                    <span className='icon fa fa-lock fa--margin-top'/>
                     <span>
-                        {global.window.mm_config.SamlLoginButtonText}
+                        <span className='icon fa fa-lock fa--margin-top'/>
+                        <span>
+                            {global.window.mm_config.SamlLoginButtonText}
+                        </span>
                     </span>
                 </a>
             );

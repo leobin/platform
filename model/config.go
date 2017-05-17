@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 package model
@@ -111,6 +111,7 @@ const (
 
 type ServiceSettings struct {
 	SiteURL                                  *string
+	LicenseFileLocation                      *string
 	ListenAddress                            string
 	ConnectionSecurity                       *string
 	TLSCertFile                              *string
@@ -150,7 +151,9 @@ type ServiceSettings struct {
 	AllowEditPost                            *string
 	PostEditTimeLimit                        *int
 	TimeBetweenUserTypingUpdatesMilliseconds *int64
+	EnablePostSearch                         *bool
 	EnableUserTypingMessages                 *bool
+	EnableUserStatuses                       *bool
 	ClusterLogTimeoutMilliseconds            *int
 }
 
@@ -181,13 +184,14 @@ type SSOSettings struct {
 }
 
 type SqlSettings struct {
-	DriverName         string
-	DataSource         string
-	DataSourceReplicas []string
-	MaxIdleConns       int
-	MaxOpenConns       int
-	Trace              bool
-	AtRestEncryptKey   string
+	DriverName               string
+	DataSource               string
+	DataSourceReplicas       []string
+	DataSourceSearchReplicas []string
+	MaxIdleConns             int
+	MaxOpenConns             int
+	Trace                    bool
+	AtRestEncryptKey         string
 }
 
 type LogSettings struct {
@@ -210,6 +214,7 @@ type PasswordSettings struct {
 }
 
 type FileSettings struct {
+	EnableFileAttachments   *bool
 	MaxFileSize             *int64
 	DriverName              string
 	Directory               string
@@ -231,27 +236,27 @@ type FileSettings struct {
 }
 
 type EmailSettings struct {
-	EnableSignUpWithEmail    bool
-	EnableSignInWithEmail    *bool
-	EnableSignInWithUsername *bool
-	SendEmailNotifications   bool
-	RequireEmailVerification bool
-	FeedbackName             string
-	FeedbackEmail            string
-	FeedbackOrganization     *string
-	SMTPUsername             string
-	SMTPPassword             string
-	SMTPServer               string
-	SMTPPort                 string
-	ConnectionSecurity       string
-	InviteSalt               string
-	PasswordResetSalt        string
-	SendPushNotifications    *bool
-	PushNotificationServer   *string
-	PushNotificationContents *string
-	EnableEmailBatching      *bool
-	EmailBatchingBufferSize  *int
-	EmailBatchingInterval    *int
+	EnableSignUpWithEmail             bool
+	EnableSignInWithEmail             *bool
+	EnableSignInWithUsername          *bool
+	SendEmailNotifications            bool
+	RequireEmailVerification          bool
+	FeedbackName                      string
+	FeedbackEmail                     string
+	FeedbackOrganization              *string
+	SMTPUsername                      string
+	SMTPPassword                      string
+	SMTPServer                        string
+	SMTPPort                          string
+	ConnectionSecurity                string
+	InviteSalt                        string
+	SendPushNotifications             *bool
+	PushNotificationServer            *string
+	PushNotificationContents          *string
+	EnableEmailBatching               *bool
+	EmailBatchingBufferSize           *int
+	EmailBatchingInterval             *int
+	SkipServerCertificateVerification *bool
 }
 
 type RateLimitSettings struct {
@@ -278,26 +283,27 @@ type SupportSettings struct {
 }
 
 type TeamSettings struct {
-	SiteName                         string
-	MaxUsersPerTeam                  int
-	EnableTeamCreation               bool
-	EnableUserCreation               bool
-	EnableOpenServer                 *bool
-	RestrictCreationToDomains        string
-	EnableCustomBrand                *bool
-	CustomBrandText                  *string
-	CustomDescriptionText            *string
-	RestrictDirectMessage            *string
-	RestrictTeamInvite               *string
-	RestrictPublicChannelManagement  *string
-	RestrictPrivateChannelManagement *string
-	RestrictPublicChannelCreation    *string
-	RestrictPrivateChannelCreation   *string
-	RestrictPublicChannelDeletion    *string
-	RestrictPrivateChannelDeletion   *string
-	UserStatusAwayTimeout            *int64
-	MaxChannelsPerTeam               *int64
-	MaxNotificationsPerChannel       *int64
+	SiteName                            string
+	MaxUsersPerTeam                     int
+	EnableTeamCreation                  bool
+	EnableUserCreation                  bool
+	EnableOpenServer                    *bool
+	RestrictCreationToDomains           string
+	EnableCustomBrand                   *bool
+	CustomBrandText                     *string
+	CustomDescriptionText               *string
+	RestrictDirectMessage               *string
+	RestrictTeamInvite                  *string
+	RestrictPublicChannelManagement     *string
+	RestrictPrivateChannelManagement    *string
+	RestrictPublicChannelCreation       *string
+	RestrictPrivateChannelCreation      *string
+	RestrictPublicChannelDeletion       *string
+	RestrictPrivateChannelDeletion      *string
+	RestrictPrivateChannelManageMembers *string
+	UserStatusAwayTimeout               *int64
+	MaxChannelsPerTeam                  *int64
+	MaxNotificationsPerChannel          *int64
 }
 
 type LdapSettings struct {
@@ -468,12 +474,17 @@ func (o *Config) SetDefaults() {
 		*o.FileSettings.AmazonS3SSL = true // Secure by default.
 	}
 
+	if o.FileSettings.EnableFileAttachments == nil {
+		o.FileSettings.EnableFileAttachments = new(bool)
+		*o.FileSettings.EnableFileAttachments = true
+	}
+
 	if o.FileSettings.MaxFileSize == nil {
 		o.FileSettings.MaxFileSize = new(int64)
 		*o.FileSettings.MaxFileSize = 52428800 // 50 MB
 	}
 
-	if len(*o.FileSettings.PublicLinkSalt) == 0 {
+	if o.FileSettings.PublicLinkSalt == nil || len(*o.FileSettings.PublicLinkSalt) == 0 {
 		o.FileSettings.PublicLinkSalt = new(string)
 		*o.FileSettings.PublicLinkSalt = NewRandomString(32)
 	}
@@ -483,17 +494,21 @@ func (o *Config) SetDefaults() {
 		o.FileSettings.InitialFont = "luximbi.ttf"
 	}
 
-	if len(o.EmailSettings.InviteSalt) == 0 {
-		o.EmailSettings.InviteSalt = NewRandomString(32)
+	if o.FileSettings.Directory == "" {
+		o.FileSettings.Directory = "./data/"
 	}
 
-	if len(o.EmailSettings.PasswordResetSalt) == 0 {
-		o.EmailSettings.PasswordResetSalt = NewRandomString(32)
+	if len(o.EmailSettings.InviteSalt) == 0 {
+		o.EmailSettings.InviteSalt = NewRandomString(32)
 	}
 
 	if o.ServiceSettings.SiteURL == nil {
 		o.ServiceSettings.SiteURL = new(string)
 		*o.ServiceSettings.SiteURL = SERVICE_SETTINGS_DEFAULT_SITE_URL
+	}
+
+	if o.ServiceSettings.LicenseFileLocation == nil {
+		o.ServiceSettings.LicenseFileLocation = new(string)
 	}
 
 	if o.ServiceSettings.EnableLinkPreviews == nil {
@@ -594,13 +609,21 @@ func (o *Config) SetDefaults() {
 	if o.TeamSettings.RestrictPublicChannelCreation == nil {
 		o.TeamSettings.RestrictPublicChannelCreation = new(string)
 		// If this setting does not exist, assume migration from <3.6, so use management setting as default.
-		*o.TeamSettings.RestrictPublicChannelCreation = *o.TeamSettings.RestrictPublicChannelManagement
+		if *o.TeamSettings.RestrictPublicChannelManagement == PERMISSIONS_CHANNEL_ADMIN {
+			*o.TeamSettings.RestrictPublicChannelCreation = PERMISSIONS_TEAM_ADMIN
+		} else {
+			*o.TeamSettings.RestrictPublicChannelCreation = *o.TeamSettings.RestrictPublicChannelManagement
+		}
 	}
 
 	if o.TeamSettings.RestrictPrivateChannelCreation == nil {
 		o.TeamSettings.RestrictPrivateChannelCreation = new(string)
 		// If this setting does not exist, assume migration from <3.6, so use management setting as default.
-		*o.TeamSettings.RestrictPrivateChannelCreation = *o.TeamSettings.RestrictPrivateChannelManagement
+		if *o.TeamSettings.RestrictPrivateChannelManagement == PERMISSIONS_CHANNEL_ADMIN {
+			*o.TeamSettings.RestrictPrivateChannelCreation = PERMISSIONS_TEAM_ADMIN
+		} else {
+			*o.TeamSettings.RestrictPrivateChannelCreation = *o.TeamSettings.RestrictPrivateChannelManagement
+		}
 	}
 
 	if o.TeamSettings.RestrictPublicChannelDeletion == nil {
@@ -613,6 +636,11 @@ func (o *Config) SetDefaults() {
 		o.TeamSettings.RestrictPrivateChannelDeletion = new(string)
 		// If this setting does not exist, assume migration from <3.6, so use management setting as default.
 		*o.TeamSettings.RestrictPrivateChannelDeletion = *o.TeamSettings.RestrictPrivateChannelManagement
+	}
+
+	if o.TeamSettings.RestrictPrivateChannelManageMembers == nil {
+		o.TeamSettings.RestrictPrivateChannelManageMembers = new(string)
+		*o.TeamSettings.RestrictPrivateChannelManageMembers = PERMISSIONS_ALL
 	}
 
 	if o.TeamSettings.UserStatusAwayTimeout == nil {
@@ -680,8 +708,13 @@ func (o *Config) SetDefaults() {
 		*o.EmailSettings.EmailBatchingInterval = EMAIL_BATCHING_INTERVAL
 	}
 
+	if o.EmailSettings.SkipServerCertificateVerification == nil {
+		o.EmailSettings.SkipServerCertificateVerification = new(bool)
+		*o.EmailSettings.SkipServerCertificateVerification = false
+	}
+
 	if !IsSafeLink(o.SupportSettings.TermsOfServiceLink) {
-		o.SupportSettings.TermsOfServiceLink = nil
+		*o.SupportSettings.TermsOfServiceLink = SUPPORT_SETTINGS_DEFAULT_TERMS_OF_SERVICE_LINK
 	}
 
 	if o.SupportSettings.TermsOfServiceLink == nil {
@@ -690,7 +723,7 @@ func (o *Config) SetDefaults() {
 	}
 
 	if !IsSafeLink(o.SupportSettings.PrivacyPolicyLink) {
-		o.SupportSettings.PrivacyPolicyLink = nil
+		*o.SupportSettings.PrivacyPolicyLink = ""
 	}
 
 	if o.SupportSettings.PrivacyPolicyLink == nil {
@@ -699,7 +732,7 @@ func (o *Config) SetDefaults() {
 	}
 
 	if !IsSafeLink(o.SupportSettings.AboutLink) {
-		o.SupportSettings.AboutLink = nil
+		*o.SupportSettings.AboutLink = ""
 	}
 
 	if o.SupportSettings.AboutLink == nil {
@@ -708,7 +741,7 @@ func (o *Config) SetDefaults() {
 	}
 
 	if !IsSafeLink(o.SupportSettings.HelpLink) {
-		o.SupportSettings.HelpLink = nil
+		*o.SupportSettings.HelpLink = ""
 	}
 
 	if o.SupportSettings.HelpLink == nil {
@@ -717,7 +750,7 @@ func (o *Config) SetDefaults() {
 	}
 
 	if !IsSafeLink(o.SupportSettings.ReportAProblemLink) {
-		o.SupportSettings.ReportAProblemLink = nil
+		*o.SupportSettings.ReportAProblemLink = ""
 	}
 
 	if o.SupportSettings.ReportAProblemLink == nil {
@@ -978,12 +1011,12 @@ func (o *Config) SetDefaults() {
 
 	if o.SamlSettings.Verify == nil {
 		o.SamlSettings.Verify = new(bool)
-		*o.SamlSettings.Verify = false
+		*o.SamlSettings.Verify = true
 	}
 
 	if o.SamlSettings.Encrypt == nil {
 		o.SamlSettings.Encrypt = new(bool)
-		*o.SamlSettings.Encrypt = false
+		*o.SamlSettings.Encrypt = true
 	}
 
 	if o.SamlSettings.IdpUrl == nil {
@@ -1131,9 +1164,19 @@ func (o *Config) SetDefaults() {
 		*o.ServiceSettings.TimeBetweenUserTypingUpdatesMilliseconds = 5000
 	}
 
+	if o.ServiceSettings.EnablePostSearch == nil {
+		o.ServiceSettings.EnablePostSearch = new(bool)
+		*o.ServiceSettings.EnablePostSearch = true
+	}
+
 	if o.ServiceSettings.EnableUserTypingMessages == nil {
 		o.ServiceSettings.EnableUserTypingMessages = new(bool)
 		*o.ServiceSettings.EnableUserTypingMessages = true
+	}
+
+	if o.ServiceSettings.EnableUserStatuses == nil {
+		o.ServiceSettings.EnableUserStatuses = new(bool)
+		*o.ServiceSettings.EnableUserStatuses = true
 	}
 
 	if o.ServiceSettings.ClusterLogTimeoutMilliseconds == nil {
@@ -1246,10 +1289,6 @@ func (o *Config) IsValid() *AppError {
 
 	if len(o.EmailSettings.InviteSalt) < 32 {
 		return NewLocAppError("Config.IsValid", "model.config.is_valid.email_salt.app_error", nil, "")
-	}
-
-	if len(o.EmailSettings.PasswordResetSalt) < 32 {
-		return NewLocAppError("Config.IsValid", "model.config.is_valid.email_reset_salt.app_error", nil, "")
 	}
 
 	if *o.EmailSettings.EmailBatchingBufferSize <= 0 {
@@ -1398,7 +1437,6 @@ func (o *Config) Sanitize() {
 	}
 
 	o.EmailSettings.InviteSalt = FAKE_SETTING
-	o.EmailSettings.PasswordResetSalt = FAKE_SETTING
 	if len(o.EmailSettings.SMTPPassword) > 0 {
 		o.EmailSettings.SMTPPassword = FAKE_SETTING
 	}
@@ -1412,6 +1450,10 @@ func (o *Config) Sanitize() {
 
 	for i := range o.SqlSettings.DataSourceReplicas {
 		o.SqlSettings.DataSourceReplicas[i] = FAKE_SETTING
+	}
+
+	for i := range o.SqlSettings.DataSourceSearchReplicas {
+		o.SqlSettings.DataSourceSearchReplicas[i] = FAKE_SETTING
 	}
 }
 

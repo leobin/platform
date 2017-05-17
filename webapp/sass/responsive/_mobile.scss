@@ -1,6 +1,20 @@
 @charset 'UTF-8';
 
 @media screen and (max-width: 768px) {
+    .member-role .member-menu,
+    .member-drop .member-menu {
+        right: 0;
+        top: 30px;
+    }
+
+    .post-code {
+        word-wrap: normal;
+    }
+
+    .table-responsive {
+        border: none;
+    }
+
     .multi-select__container {
         .btn {
             display: block;
@@ -23,6 +37,10 @@
         padding-bottom: 10px;
 
         .msg-typing {
+            display: none;
+        }
+
+        .icon--emoji-picker {
             display: none;
         }
     }
@@ -97,9 +115,10 @@
             font-weight: 200;
             height: 30px;
             left: 50%;
-            line-height: 27px;
+            line-height: 0;
             margin-left: -15px;
             opacity: 1;
+            padding-top: 13px;
             position: fixed;
             text-align: center;
             text-shadow: none;
@@ -223,6 +242,10 @@
             }
         }
 
+        .reacticon__container {
+            display: none;
+        }
+
         .post__dropdown {
             display: inline-block;
             height: 28px;
@@ -244,6 +267,18 @@
         }
 
         &.post--compact {
+            .post__img {
+                padding-top: 0;
+            }
+
+            &.same--root {
+                &.same--user {
+                    .post__header {
+                        height: auto;
+                    }
+                }
+            }
+
             .status-wrapper {
                 &:after {
                     bottom: 3px;
@@ -253,6 +288,7 @@
                     }
                 }
             }
+
             blockquote {
                 margin-top: 0;
             }
@@ -274,6 +310,7 @@
 
         .post__header {
             margin-bottom: 0;
+            padding-right: 70px;
 
             .col__reply {
                 top: -3px;
@@ -697,8 +734,17 @@
                             z-index: 5;
 
                             .modal-title {
+                                max-width: 100%;
+                                padding: 0 40px;
                                 text-align: center;
                                 width: 100%;
+
+                                > span {
+                                    display: block;
+                                    overflow: hidden;
+                                    text-overflow: ellipsis;
+                                    white-space: nowrap;
+                                }
                             }
                         }
 
@@ -817,6 +863,18 @@
 
             .navbar-brand {
                 white-space: nowrap;
+
+                .heading {
+                    line-height: normal;
+                    position: relative;
+                    top: 11px;
+                    vertical-align: top;
+                }
+
+                .header-dropdown__icon {
+                    top: 18px;
+                    vertical-align: top;
+                }
             }
 
             .dropdown {
@@ -853,9 +911,10 @@
                     font-weight: 200;
                     height: 30px;
                     left: 50%;
-                    line-height: 27px;
+                    line-height: 0;
                     margin-left: -15px;
                     opacity: 1;
+                    padding-top: 13px;
                     position: fixed;
                     text-align: center;
                     text-shadow: none;
@@ -1090,6 +1149,13 @@
         .post-create__container {
             form {
                 padding: .5em 1em;
+            }
+
+            .emoji-rhs {
+                position: relative;
+                display: none;
+                top: 1px;
+                right: -1px;
             }
 
             .msg-typing:empty {
@@ -1342,7 +1408,7 @@
 
                 a {
                     border-bottom: 1px solid;
-                    line-height: 50px;
+                    line-height: 45px;
                     position: relative;
                     text-align: center;
                 }
@@ -1688,7 +1754,7 @@
     }
 }
 
-@media screen and (max-width: 320px) and (max-height: 560px) {
+@media screen and (max-width: 380px) and (max-height: 580px) {
     #navbar {
         .navbar-default {
             .dropdown-menu {
@@ -1697,7 +1763,8 @@
                 > li {
                     > a {
                         border: none;
-                        line-height: 28px;
+                        font-size: 13px;
+                        line-height: 27px;
                     }
                 }
             }
@@ -1705,10 +1772,19 @@
     }
 }
 
-// on iOS, allow clicks within an input's label to actually propagate through to the input itself
+
+
+// on iOS, allow clicks within an input's label to actually propagate through to the input itself,
+// but still allow clicks to a elements to go trough
 // http://stackoverflow.com/a/34810294/6325807
-label span {
-    pointer-events: none;
+label {
+    span {
+        pointer-events: none;
+    }
+
+    span a {
+        pointer-events: all;
+    }
 }
 
 @media screen and (-webkit-min-device-pixel-ratio: 0) {

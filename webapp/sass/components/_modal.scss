@@ -275,6 +275,10 @@
                 overflow-y: visible;
             }
 
+            .post-code__container {
+                overflow: auto;
+            }
+
             .modal-image__wrapper {
                 @include border-radius(3px);
                 display: table-cell;
@@ -345,7 +349,7 @@
                 }
 
                 img {
-                    max-height: 100%;
+                    max-height: calc(100vh - 200px);
                     max-width: 100%;
                 }
 
@@ -600,6 +604,10 @@
                 opacity: .5;
             }
         }
+    }
+
+    .more-modal__placeholder-row {
+        padding: 10px 15px;
     }
 
     .more-modal__actions--round {

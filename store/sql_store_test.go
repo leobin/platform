@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 package store
@@ -25,10 +25,18 @@ func Setup() {
 }
 
 func TestSqlStore1(t *testing.T) {
+	utils.TranslationsPreInit()
 	utils.LoadConfig("config.json")
 	utils.Cfg.SqlSettings.Trace = true
 
 	store := NewSqlStore()
+	store.Close()
+
+	utils.Cfg.SqlSettings.DataSourceReplicas = []string{utils.Cfg.SqlSettings.DataSource}
+
+	store = NewSqlStore()
+	store.TotalMasterDbConnections()
+	store.TotalReadDbConnections()
 	store.Close()
 
 	utils.LoadConfig("config.json")

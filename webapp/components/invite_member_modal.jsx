@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 import ReactDOM from 'react-dom';
@@ -490,7 +490,7 @@ class InviteMemberModal extends React.Component {
                             <Modal.Title>
                                 <FormattedMessage
                                     id='invite_member.newMember'
-                                    defaultMessage='Invite New Member'
+                                    defaultMessage='Send Email Invite'
                                 />
                             </Modal.Title>
                         </Modal.Header>

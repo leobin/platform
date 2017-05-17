@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 package api
@@ -6,10 +6,12 @@ package api
 import (
 	"time"
 
+	"github.com/mattermost/platform/api4"
 	"github.com/mattermost/platform/app"
 	"github.com/mattermost/platform/model"
 	"github.com/mattermost/platform/store"
 	"github.com/mattermost/platform/utils"
+	"github.com/mattermost/platform/wsapi"
 
 	l4g "github.com/alecthomas/log4go"
 )
@@ -21,6 +23,7 @@ type TestHelper struct {
 	BasicUser2   *model.User
 	BasicChannel *model.Channel
 	BasicPost    *model.Post
+	PinnedPost   *model.Post
 
 	SystemAdminClient  *model.Client
 	SystemAdminTeam    *model.Team
@@ -40,9 +43,12 @@ func SetupEnterprise() *TestHelper {
 		app.NewServer()
 		app.InitStores()
 		InitRouter()
+		wsapi.InitRouter()
 		app.StartServer()
 		utils.InitHTML()
+		api4.InitApi(false)
 		InitApi()
+		wsapi.InitApi()
 		utils.EnableDebugLogForTest()
 		app.Srv.Store.MarkSystemRanUnitTests()
 
@@ -67,8 +73,11 @@ func Setup() *TestHelper {
 		app.NewServer()
 		app.InitStores()
 		InitRouter()
+		wsapi.InitRouter()
 		app.StartServer()
+		api4.InitApi(false)
 		InitApi()
+		wsapi.InitApi()
 		utils.EnableDebugLogForTest()
 		app.Srv.Store.MarkSystemRanUnitTests()
 
@@ -76,6 +85,18 @@ func Setup() *TestHelper {
 	}
 
 	return &TestHelper{}
+}
+
+func ReloadConfigForSetup() {
+	utils.LoadConfig("config.json")
+	utils.InitTranslations(utils.Cfg.LocalizationSettings)
+	utils.Cfg.TeamSettings.MaxUsersPerTeam = 50
+	*utils.Cfg.RateLimitSettings.Enable = false
+	utils.Cfg.EmailSettings.SendEmailNotifications = true
+	utils.Cfg.EmailSettings.SMTPServer = "dockerhost"
+	utils.Cfg.EmailSettings.SMTPPort = "2500"
+	utils.Cfg.EmailSettings.FeedbackEmail = "test@example.com"
+	*utils.Cfg.TeamSettings.EnableOpenServer = true
 }
 
 func (me *TestHelper) InitBasic() *TestHelper {
@@ -90,6 +111,9 @@ func (me *TestHelper) InitBasic() *TestHelper {
 	me.BasicClient.SetTeamId(me.BasicTeam.Id)
 	me.BasicChannel = me.CreateChannel(me.BasicClient, me.BasicTeam)
 	me.BasicPost = me.CreatePost(me.BasicClient, me.BasicChannel)
+
+	pinnedPostChannel := me.CreateChannel(me.BasicClient, me.BasicTeam)
+	me.PinnedPost = me.CreatePinnedPost(me.BasicClient, pinnedPostChannel)
 
 	return me
 }
@@ -152,7 +176,7 @@ func (me *TestHelper) CreateUser(client *model.Client) *model.User {
 func LinkUserToTeam(user *model.User, team *model.Team) {
 	utils.DisableDebugLogForTest()
 
-	err := app.JoinUserToTeam(team, user, utils.GetSiteURL())
+	err := app.JoinUserToTeam(team, user, "")
 	if err != nil {
 		l4g.Error(err.Error())
 		l4g.Close()
@@ -257,6 +281,21 @@ func (me *TestHelper) CreatePost(client *model.Client, channel *model.Channel) *
 	post := &model.Post{
 		ChannelId: channel.Id,
 		Message:   "message_" + id,
+	}
+
+	utils.DisableDebugLogForTest()
+	r := client.Must(client.CreatePost(post)).Data.(*model.Post)
+	utils.EnableDebugLogForTest()
+	return r
+}
+
+func (me *TestHelper) CreatePinnedPost(client *model.Client, channel *model.Channel) *model.Post {
+	id := model.NewId()
+
+	post := &model.Post{
+		ChannelId: channel.Id,
+		Message:   "message_" + id,
+		IsPinned:  true,
 	}
 
 	utils.DisableDebugLogForTest()

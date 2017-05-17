@@ -1,7 +1,14 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
-import MemberListChannel from './member_list_channel.jsx';
+import MemberListChannel from 'components/member_list_channel';
+
+import TeamStore from 'stores/team_store.jsx';
+import UserStore from 'stores/user_store.jsx';
+import ChannelStore from 'stores/channel_store.jsx';
+
+import {canManageMembers} from 'utils/channel_utils.jsx';
+import {Constants} from 'utils/constants.jsx';
 
 import React from 'react';
 import {Modal} from 'react-bootstrap';
@@ -24,6 +31,30 @@ export default class ChannelMembersModal extends React.Component {
     }
 
     render() {
+        const isSystemAdmin = UserStore.isSystemAdminForCurrentUser();
+        const isTeamAdmin = TeamStore.isTeamAdminForCurrentTeam();
+        const isChannelAdmin = ChannelStore.isChannelAdminForCurrentChannel();
+
+        let addMembersButton = null;
+        if (canManageMembers(this.state.channel, isSystemAdmin, isTeamAdmin, isChannelAdmin) && this.state.channel.name !== Constants.DEFAULT_CHANNEL) {
+            addMembersButton = (
+                <a
+                    id='showInviteModal'
+                    className='btn btn-md btn-primary'
+                    href='#'
+                    onClick={() => {
+                        this.props.showInviteModal();
+                        this.onHide();
+                    }}
+                >
+                    <FormattedMessage
+                        id='channel_members_modal.addNew'
+                        defaultMessage=' Add New Members'
+                    />
+                </a>
+            );
+        }
+
         return (
             <div>
                 <Modal
@@ -40,19 +71,7 @@ export default class ChannelMembersModal extends React.Component {
                                 defaultMessage=' Members'
                             />
                         </Modal.Title>
-                        <a
-                            className='btn btn-md btn-primary'
-                            href='#'
-                            onClick={() => {
-                                this.props.showInviteModal();
-                                this.onHide();
-                            }}
-                        >
-                            <FormattedMessage
-                                id='channel_members_modal.addNew'
-                                defaultMessage=' Add New Members'
-                            />
-                        </a>
+                        {addMembersButton}
                     </Modal.Header>
                     <Modal.Body
                         ref='modalBody'

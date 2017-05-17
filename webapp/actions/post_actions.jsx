@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 import AppDispatcher from 'dispatcher/app_dispatcher.jsx';
@@ -10,6 +10,8 @@ import UserStore from 'stores/user_store.jsx';
 import {loadStatusesForChannel} from 'actions/status_actions.jsx';
 import {loadNewDMIfNeeded, loadNewGMIfNeeded} from 'actions/user_actions.jsx';
 import {trackEvent} from 'actions/diagnostics_actions.jsx';
+import {sendDesktopNotification} from 'actions/notification_actions.jsx';
+import * as GlobalActions from 'actions/global_actions.jsx';
 
 import Client from 'client/web_client.jsx';
 import * as AsyncClient from 'utils/async_client.jsx';
@@ -18,20 +20,40 @@ import Constants from 'utils/constants.jsx';
 const ActionTypes = Constants.ActionTypes;
 const Preferences = Constants.Preferences;
 
+// Redux actions
+import store from 'stores/redux_store.jsx';
+const dispatch = store.dispatch;
+const getState = store.getState;
+import {getProfilesByIds} from 'mattermost-redux/actions/users';
+import {getMyChannelMember} from 'mattermost-redux/actions/channels';
+
 export function handleNewPost(post, msg) {
-    let websocketMessageProps = null;
+    let websocketMessageProps = {};
     if (msg) {
         websocketMessageProps = msg.data;
     }
 
-    if (msg && msg.data) {
-        if (msg.data.channel_type === Constants.DM_CHANNEL) {
-            loadNewDMIfNeeded(post.user_id);
-        } else if (msg.data.channel_type === Constants.GM_CHANNEL) {
-            loadNewGMIfNeeded(post.channel_id, post.user_id);
+    if (ChannelStore.getMyMember(post.channel_id)) {
+        completePostReceive(post, websocketMessageProps);
+    } else {
+        // This API call requires any real team id in API v3, so set one if we don't already have one
+        if (!Client.teamId && msg && msg.data) {
+            Client.setTeamId(msg.data.team_id);
         }
+
+        getMyChannelMember(post.channel_id)(dispatch, getState).then(() => completePostReceive(post, websocketMessageProps));
     }
 
+    if (msg && msg.data) {
+        if (msg.data.channel_type === Constants.DM_CHANNEL) {
+            loadNewDMIfNeeded(post.channel_id);
+        } else if (msg.data.channel_type === Constants.GM_CHANNEL) {
+            loadNewGMIfNeeded(post.channel_id);
+        }
+    }
+}
+
+function completePostReceive(post, websocketMessageProps) {
     if (post.root_id && PostStore.getPost(post.channel_id, post.root_id) == null) {
         Client.getPost(
             post.channel_id,
@@ -51,6 +73,8 @@ export function handleNewPost(post, msg) {
                     websocketMessageProps
                 });
 
+                sendDesktopNotification(post, websocketMessageProps);
+
                 loadProfilesForPosts(data.posts);
             },
             (err) => {
@@ -66,6 +90,16 @@ export function handleNewPost(post, msg) {
         post,
         websocketMessageProps
     });
+
+    sendDesktopNotification(post, websocketMessageProps);
+}
+
+export function pinPost(channelId, postId) {
+    AsyncClient.pinPost(channelId, postId);
+}
+
+export function unpinPost(channelId, postId) {
+    AsyncClient.unpinPost(channelId, postId);
 }
 
 export function flagPost(postId) {
@@ -96,13 +130,39 @@ export function getFlaggedPosts() {
             AppDispatcher.handleServerAction({
                 type: ActionTypes.RECEIVED_SEARCH,
                 results: data,
-                is_flagged_posts: true
+                is_flagged_posts: true,
+                is_pinned_posts: false
             });
 
             loadProfilesForPosts(data.posts);
         },
         (err) => {
             AsyncClient.dispatchError(err, 'getFlaggedPosts');
+        }
+    );
+}
+
+export function getPinnedPosts(channelId = ChannelStore.getCurrentId()) {
+    Client.getPinnedPosts(channelId,
+        (data) => {
+            AppDispatcher.handleServerAction({
+                type: ActionTypes.RECEIVED_SEARCH_TERM,
+                term: null,
+                do_search: false,
+                is_mention_search: false
+            });
+
+            AppDispatcher.handleServerAction({
+                type: ActionTypes.RECEIVED_SEARCH,
+                results: data,
+                is_flagged_posts: false,
+                is_pinned_posts: true
+            });
+
+            loadProfilesForPosts(data.posts);
+        },
+        (err) => {
+            AsyncClient.dispatchError(err, 'getPinnedPosts');
         }
     );
 }
@@ -257,7 +317,7 @@ export function loadProfilesForPosts(posts) {
         return;
     }
 
-    AsyncClient.getProfilesByIds(list);
+    getProfilesByIds(list)(dispatch, getState);
 }
 
 export function addReaction(channelId, postId, emojiName) {
@@ -266,6 +326,7 @@ export function addReaction(channelId, postId, emojiName) {
         user_id: UserStore.getCurrentId(),
         emoji_name: emojiName
     };
+    emitEmojiPosted(emojiName);
 
     AsyncClient.saveReaction(channelId, reaction);
 }
@@ -378,9 +439,11 @@ export function updatePost(post, success, isPost) {
         });
 }
 
-export function removePostFromStore(post) {
-    PostStore.removePost(post);
-    PostStore.emitChange();
+export function emitEmojiPosted(emoji) {
+    AppDispatcher.handleServerAction({
+        type: ActionTypes.EMOJI_POSTED,
+        alias: emoji
+    });
 }
 
 export function deletePost(channelId, post, success, error) {
@@ -388,7 +451,7 @@ export function deletePost(channelId, post, success, error) {
         channelId,
         post.id,
         () => {
-            removePostFromStore(post);
+            GlobalActions.emitRemovePost(post);
             if (post.id === PostStore.getSelectedPostId()) {
                 AppDispatcher.handleServerAction({
                     type: ActionTypes.RECEIVED_POST_SELECTED,

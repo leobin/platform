@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 package app
@@ -18,14 +18,14 @@ import (
 	"github.com/mattermost/platform/utils"
 )
 
-func GetLogs() ([]string, *model.AppError) {
-	lines, err := GetLogsSkipSend()
+func GetLogs(page, perPage int) ([]string, *model.AppError) {
+	lines, err := GetLogsSkipSend(page, perPage)
 	if err != nil {
 		return nil, err
 	}
 
 	if einterfaces.GetClusterInterface() != nil {
-		clines, err := einterfaces.GetClusterInterface().GetLogs()
+		clines, err := einterfaces.GetClusterInterface().GetLogs(page, perPage)
 		if err != nil {
 			return nil, err
 		}
@@ -36,7 +36,7 @@ func GetLogs() ([]string, *model.AppError) {
 	return lines, nil
 }
 
-func GetLogsSkipSend() ([]string, *model.AppError) {
+func GetLogsSkipSend(page, perPage int) ([]string, *model.AppError) {
 	var lines []string
 
 	if utils.Cfg.LogSettings.EnableFile {
@@ -47,9 +47,20 @@ func GetLogsSkipSend() ([]string, *model.AppError) {
 
 		defer file.Close()
 
+		offsetCount := 0
+		limitCount := 0
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
-			lines = append(lines, scanner.Text())
+			if limitCount >= perPage {
+				break
+			}
+
+			if offsetCount >= page*perPage {
+				lines = append(lines, scanner.Text())
+				limitCount++
+			} else {
+				offsetCount++
+			}
 		}
 	} else {
 		lines = append(lines, "")
@@ -125,9 +136,10 @@ func SaveConfig(cfg *model.Config) *model.AppError {
 		return model.NewLocAppError("saveConfig", "ent.cluster.save_config.error", nil, "")
 	}
 
-	//oldCfg := utils.Cfg
+	utils.DisableConfigWatch()
 	utils.SaveConfig(utils.CfgFileName, cfg)
 	utils.LoadConfig(utils.CfgFileName)
+	utils.EnableConfigWatch()
 
 	if einterfaces.GetMetricsInterface() != nil {
 		if *utils.Cfg.MetricsSettings.Enable {
@@ -137,6 +149,7 @@ func SaveConfig(cfg *model.Config) *model.AppError {
 		}
 	}
 
+	// oldCfg := utils.Cfg
 	// Future feature is to sync the configuration files
 	// if einterfaces.GetClusterInterface() != nil {
 	// 	err := einterfaces.GetClusterInterface().ConfigChanged(cfg, oldCfg, true)

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 package api4
@@ -24,13 +24,17 @@ type ApiParams struct {
 	FileId         string
 	CommandId      string
 	HookId         string
+	ReportId       string
 	EmojiId        string
+	AppId          string
 	Email          string
 	Username       string
 	TeamName       string
 	ChannelName    string
 	PreferenceName string
+	EmojiName      string
 	Category       string
+	Service        string
 	Page           int
 	PerPage        int
 }
@@ -68,8 +72,16 @@ func ApiParamsFromRequest(r *http.Request) *ApiParams {
 		params.HookId = val
 	}
 
+	if val, ok := props["report_id"]; ok {
+		params.ReportId = val
+	}
+
 	if val, ok := props["emoji_id"]; ok {
 		params.EmojiId = val
+	}
+
+	if val, ok := props["app_id"]; ok {
+		params.AppId = val
 	}
 
 	if val, ok := props["email"]; ok {
@@ -92,17 +104,25 @@ func ApiParamsFromRequest(r *http.Request) *ApiParams {
 		params.Category = val
 	}
 
+	if val, ok := props["service"]; ok {
+		params.Service = val
+	}
+
 	if val, ok := props["preference_name"]; ok {
 		params.PreferenceName = val
 	}
 
-	if val, err := strconv.Atoi(r.URL.Query().Get("page")); err != nil {
+	if val, ok := props["emoji_name"]; ok {
+		params.EmojiName = val
+	}
+
+	if val, err := strconv.Atoi(r.URL.Query().Get("page")); err != nil || val < 0 {
 		params.Page = PAGE_DEFAULT
 	} else {
 		params.Page = val
 	}
 
-	if val, err := strconv.Atoi(r.URL.Query().Get("per_page")); err != nil {
+	if val, err := strconv.Atoi(r.URL.Query().Get("per_page")); err != nil || val < 0 {
 		params.PerPage = PER_PAGE_DEFAULT
 	} else if val > PER_PAGE_MAXIMUM {
 		params.PerPage = PER_PAGE_MAXIMUM

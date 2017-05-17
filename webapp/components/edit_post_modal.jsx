@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 import Textbox from './textbox.jsx';
@@ -184,6 +184,8 @@ export default class EditPostModal extends React.Component {
     }
 
     onModalHide() {
+        this.refs.editbox.hidePreview();
+
         if (this.state.refocusId !== '') {
             setTimeout(() => {
                 const element = $(this.state.refocusId).get(0);

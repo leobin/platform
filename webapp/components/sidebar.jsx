@@ -1,11 +1,11 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 import $ from 'jquery';
 import ReactDOM from 'react-dom';
 import NewChannelFlow from './new_channel_flow.jsx';
-import MoreDirectChannels from './more_direct_channels.jsx';
-import MoreChannels from 'components/more_channels.jsx';
+import MoreDirectChannels from 'components/more_direct_channels';
+import MoreChannels from 'components/more_channels';
 import SidebarHeader from './sidebar_header.jsx';
 import UnreadChannelIndicator from './unread_channel_indicator.jsx';
 import TutorialTip from './tutorial/tutorial_tip.jsx';
@@ -18,6 +18,7 @@ import PreferenceStore from 'stores/preference_store.jsx';
 import ModalStore from 'stores/modal_store.jsx';
 
 import * as AsyncClient from 'utils/async_client.jsx';
+import {sortTeamsByDisplayName} from 'utils/team_utils.jsx';
 import * as Utils from 'utils/utils.jsx';
 import * as ChannelUtils from 'utils/channel_utils.jsx';
 import * as ChannelActions from 'actions/channel_actions.jsx';
@@ -38,6 +39,10 @@ import {browserHistory, Link} from 'react-router/es6';
 
 import favicon from 'images/favicon/favicon-16x16.png';
 import redFavicon from 'images/favicon/redfavicon-16x16.png';
+
+import store from 'stores/redux_store.jsx';
+import {getMyPreferences} from 'mattermost-redux/selectors/entities/preferences';
+import {getUsers} from 'mattermost-redux/selectors/entities/users';
 
 export default class Sidebar extends React.Component {
     constructor(props) {
@@ -85,28 +90,8 @@ export default class Sidebar extends React.Component {
     }
 
     getTotalUnreadCount() {
-        let msgs = 0;
-        let mentions = 0;
-        const unreadCounts = this.state.unreadCounts;
-        const teamMembers = this.state.teamMembers;
-
-        teamMembers.forEach((member) => {
-            if (member.team_id !== this.state.currentTeam.id) {
-                msgs += member.msg_count || 0;
-                mentions += member.mention_count || 0;
-            }
-        });
-
-        Object.keys(unreadCounts).forEach((chId) => {
-            const channel = ChannelStore.get(chId);
-
-            if (channel && (channel.type === Constants.DM_CHANNEL || channel.type === Constants.GM_CHANNEL || channel.team_id === this.state.currentTeam.id)) {
-                msgs += unreadCounts[chId].msgs;
-                mentions += unreadCounts[chId].mentions;
-            }
-        });
-
-        return {msgs, mentions};
+        const unreads = ChannelUtils.getCountsStateFromStores(this.state.currentTeam, this.state.teamMembers, this.state.unreadCounts);
+        return {msgs: unreads.messageCount, mentions: unreads.mentionCount};
     }
 
     getStateFromStores() {
@@ -115,14 +100,25 @@ export default class Sidebar extends React.Component {
         const currentChannelId = ChannelStore.getCurrentId();
         const tutorialStep = PreferenceStore.getInt(Preferences.TUTORIAL_STEP, UserStore.getCurrentId(), 999);
 
-        const allChannels = ChannelStore.getAll().map((channel) => Object.assign({}, channel));
-        const channelList = ChannelUtils.buildDisplayableChannelList(allChannels);
+        const channels = ChannelStore.getAll();
+        const preferences = getMyPreferences(store.getState());
+        const profiles = getUsers(store.getState());
+        let displayableChannels = {};
+        if (channels !== this.oldChannels ||
+            preferences !== this.oldPreferences ||
+            profiles !== this.oldProfiles) {
+            const channelsArray = channels.map((channel) => Object.assign({}, channel));
+            displayableChannels = ChannelUtils.buildDisplayableChannelList(channelsArray);
+        }
+        this.oldChannels = channels;
+        this.oldPreferences = preferences;
+        this.oldProfiles = profiles;
 
         return {
             activeId: currentChannelId,
             members,
             teamMembers,
-            ...channelList,
+            ...displayableChannels,
             unreadCounts: JSON.parse(JSON.stringify(ChannelStore.getUnreadCounts())),
             showTutorialTip: tutorialStep === TutorialSteps.CHANNEL_POPOVER,
             currentTeam: TeamStore.getCurrent(),
@@ -445,7 +441,7 @@ export default class Sidebar extends React.Component {
             <div>
                 <FormattedHTMLMessage
                     id='sidebar.tutorialScreen1'
-                    defaultMessage='<h4>Channels</h4><p><strong>Channels</strong> organize conversations across different topics. They’re open to everyone on your team. To send private communications use <strong>Direct Messages</strong> for a single person or <strong>Private Groups</strong> for multiple people.</p>'
+                    defaultMessage='<h4>Channels</h4><p><strong>Channels</strong> organize conversations across different topics. They’re open to everyone on your team. To send private communications use <strong>Direct Messages</strong> for a single person or <strong>Private Channels</strong> for multiple people.</p>'
                 />
             </div>
         );
@@ -472,7 +468,7 @@ export default class Sidebar extends React.Component {
                     id='sidebar.tutorialScreen3'
                     defaultMessage='<h4>Creating and Joining Channels</h4>
                     <p>Click <strong>"More..."</strong> to create a new channel or join an existing one.</p>
-                    <p>You can also create a new channel or private group by clicking the <strong>"+" symbol</strong> next to the channel or private group header.</p>'
+                    <p>You can also create a new public or private channel by clicking the <strong>"+" symbol</strong> next to the public or private channel header.</p>'
                 />
             </div>
         );
@@ -636,13 +632,15 @@ export default class Sidebar extends React.Component {
         this.lastUnreadChannel = null;
 
         // create elements for all 4 types of channels
-        const favoriteItems = this.state.favoriteChannels.map((channel, index, arr) => {
-            if (channel.type === Constants.DM_CHANNEL) {
-                return this.createChannelElement(channel, index, arr, this.handleLeaveDirectChannel);
-            }
+        const favoriteItems = this.state.favoriteChannels.
+            sort(sortTeamsByDisplayName).
+            map((channel, index, arr) => {
+                if (channel.type === Constants.DM_CHANNEL) {
+                    return this.createChannelElement(channel, index, arr, this.handleLeaveDirectChannel);
+                }
 
-            return this.createChannelElement(channel);
-        });
+                return this.createChannelElement(channel);
+            });
 
         const publicChannelItems = this.state.publicChannels.map(this.createChannelElement);
 
@@ -675,7 +673,10 @@ export default class Sidebar extends React.Component {
             <li key='more'>
                 <a
                     href='#'
-                    onClick={() => this.showMoreDirectChannelsModal()}
+                    onClick={(e) => {
+                        e.preventDefault();
+                        this.showMoreDirectChannelsModal();
+                    }}
                 >
                     <FormattedMessage
                         id='sidebar.moreElips'
@@ -694,7 +695,7 @@ export default class Sidebar extends React.Component {
             <Tooltip id='new-channel-tooltip' >
                 <FormattedMessage
                     id='sidebar.createChannel'
-                    defaultMessage='Create new channel'
+                    defaultMessage='Create new public channel'
                 />
             </Tooltip>
         );
@@ -702,7 +703,7 @@ export default class Sidebar extends React.Component {
             <Tooltip id='new-group-tooltip'>
                 <FormattedMessage
                     id='sidebar.createGroup'
-                    defaultMessage='Create new group'
+                    defaultMessage='Create new private channel'
                 />
             </Tooltip>
         );
@@ -727,6 +728,7 @@ export default class Sidebar extends React.Component {
         let createPublicChannelIcon = (
             <OverlayTrigger
                 delayShow={500}
+                trigger='hover'
                 placement='top'
                 overlay={createChannelTootlip}
             >
@@ -744,6 +746,7 @@ export default class Sidebar extends React.Component {
             <OverlayTrigger
                 delayShow={500}
                 placement='top'
+                trigger='hover'
                 overlay={createGroupTootlip}
             >
                 <a
@@ -866,7 +869,7 @@ export default class Sidebar extends React.Component {
                             <h4>
                                 <FormattedMessage
                                     id='sidebar.pg'
-                                    defaultMessage='Private Groups'
+                                    defaultMessage='Private Channels'
                                 />
                                 {createPrivateChannelIcon}
                             </h4>

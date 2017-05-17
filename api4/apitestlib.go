@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 package api4
@@ -12,6 +12,7 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -20,22 +21,57 @@ import (
 	"github.com/mattermost/platform/model"
 	"github.com/mattermost/platform/store"
 	"github.com/mattermost/platform/utils"
+	"github.com/mattermost/platform/wsapi"
 
 	s3 "github.com/minio/minio-go"
 )
 
 type TestHelper struct {
-	Client        *model.Client4
-	BasicUser     *model.User
-	BasicUser2    *model.User
-	TeamAdminUser *model.User
-	BasicTeam     *model.Team
-	BasicChannel  *model.Channel
-	BasicChannel2 *model.Channel
-	BasicPost     *model.Post
+	Client              *model.Client4
+	BasicUser           *model.User
+	BasicUser2          *model.User
+	TeamAdminUser       *model.User
+	BasicTeam           *model.Team
+	BasicChannel        *model.Channel
+	BasicPrivateChannel *model.Channel
+	BasicChannel2       *model.Channel
+	BasicPost           *model.Post
 
 	SystemAdminClient *model.Client4
 	SystemAdminUser   *model.User
+}
+
+func SetupEnterprise() *TestHelper {
+	if app.Srv == nil {
+		utils.TranslationsPreInit()
+		utils.LoadConfig("config.json")
+		utils.InitTranslations(utils.Cfg.LocalizationSettings)
+		utils.Cfg.TeamSettings.MaxUsersPerTeam = 50
+		*utils.Cfg.RateLimitSettings.Enable = false
+		utils.Cfg.EmailSettings.SendEmailNotifications = true
+		utils.Cfg.EmailSettings.SMTPServer = "dockerhost"
+		utils.Cfg.EmailSettings.SMTPPort = "2500"
+		utils.Cfg.EmailSettings.FeedbackEmail = "test@example.com"
+		utils.DisableDebugLogForTest()
+		utils.License.Features.SetDefaults()
+		app.NewServer()
+		app.InitStores()
+		InitRouter()
+		wsapi.InitRouter()
+		app.StartServer()
+		utils.InitHTML()
+		InitApi(true)
+		wsapi.InitApi()
+		utils.EnableDebugLogForTest()
+		app.Srv.Store.MarkSystemRanUnitTests()
+
+		*utils.Cfg.TeamSettings.EnableOpenServer = true
+	}
+
+	th := &TestHelper{}
+	th.Client = th.CreateClient()
+	th.SystemAdminClient = th.CreateClient()
+	return th
 }
 
 func Setup() *TestHelper {
@@ -53,8 +89,10 @@ func Setup() *TestHelper {
 		app.NewServer()
 		app.InitStores()
 		InitRouter()
+		wsapi.InitRouter()
 		app.StartServer()
 		InitApi(true)
+		wsapi.InitApi()
 		utils.EnableDebugLogForTest()
 		app.Srv.Store.MarkSystemRanUnitTests()
 
@@ -70,31 +108,57 @@ func Setup() *TestHelper {
 func TearDown() {
 	utils.DisableDebugLogForTest()
 
-	options := map[string]bool{}
-	options[store.USER_SEARCH_OPTION_NAMES_ONLY_NO_FULL_NAME] = true
-	if result := <-app.Srv.Store.User().Search("", "fakeuser", options); result.Err != nil {
-		l4g.Error("Error tearing down test users")
-	} else {
-		users := result.Data.([]*model.User)
+	var wg sync.WaitGroup
+	wg.Add(3)
 
-		for _, u := range users {
-			if err := app.PermanentDeleteUser(u); err != nil {
-				l4g.Error(err.Error())
+	go func() {
+		defer wg.Done()
+		options := map[string]bool{}
+		options[store.USER_SEARCH_OPTION_NAMES_ONLY_NO_FULL_NAME] = true
+		if result := <-app.Srv.Store.User().Search("", "fakeuser", options); result.Err != nil {
+			l4g.Error("Error tearing down test users")
+		} else {
+			users := result.Data.([]*model.User)
+
+			for _, u := range users {
+				if err := app.PermanentDeleteUser(u); err != nil {
+					l4g.Error(err.Error())
+				}
 			}
 		}
-	}
+	}()
 
-	if result := <-app.Srv.Store.Team().SearchByName("faketeam"); result.Err != nil {
-		l4g.Error("Error tearing down test teams")
-	} else {
-		teams := result.Data.([]*model.Team)
+	go func() {
+		defer wg.Done()
+		if result := <-app.Srv.Store.Team().SearchByName("faketeam"); result.Err != nil {
+			l4g.Error("Error tearing down test teams")
+		} else {
+			teams := result.Data.([]*model.Team)
 
-		for _, t := range teams {
-			if err := app.PermanentDeleteTeam(t); err != nil {
-				l4g.Error(err.Error())
+			for _, t := range teams {
+				if err := app.PermanentDeleteTeam(t); err != nil {
+					l4g.Error(err.Error())
+				}
 			}
 		}
-	}
+	}()
+
+	go func() {
+		defer wg.Done()
+		if result := <-app.Srv.Store.OAuth().GetApps(0, 1000); result.Err != nil {
+			l4g.Error("Error tearing down test oauth apps")
+		} else {
+			apps := result.Data.([]*model.OAuthApp)
+
+			for _, a := range apps {
+				if strings.HasPrefix(a.Name, "fakeoauthapp") {
+					<-app.Srv.Store.OAuth().DeleteApp(a.Id)
+				}
+			}
+		}
+	}()
+
+	wg.Wait()
 
 	utils.EnableDebugLogForTest()
 }
@@ -104,6 +168,7 @@ func (me *TestHelper) InitBasic() *TestHelper {
 	me.LoginTeamAdmin()
 	me.BasicTeam = me.CreateTeam()
 	me.BasicChannel = me.CreatePublicChannel()
+	me.BasicPrivateChannel = me.CreatePrivateChannel()
 	me.BasicChannel2 = me.CreatePublicChannel()
 	me.BasicPost = me.CreatePost()
 	me.BasicUser = me.CreateUser()
@@ -114,6 +179,8 @@ func (me *TestHelper) InitBasic() *TestHelper {
 	app.AddUserToChannel(me.BasicUser2, me.BasicChannel)
 	app.AddUserToChannel(me.BasicUser, me.BasicChannel2)
 	app.AddUserToChannel(me.BasicUser2, me.BasicChannel2)
+	app.AddUserToChannel(me.BasicUser, me.BasicPrivateChannel)
+	app.AddUserToChannel(me.BasicUser2, me.BasicPrivateChannel)
 	app.UpdateUserRoles(me.BasicUser.Id, model.ROLE_SYSTEM_USER.Id)
 	me.LoginBasic()
 
@@ -130,6 +197,10 @@ func (me *TestHelper) InitSystemAdmin() *TestHelper {
 
 func (me *TestHelper) CreateClient() *model.Client4 {
 	return model.NewAPIv4Client("http://localhost" + utils.Cfg.ServiceSettings.ListenAddress)
+}
+
+func (me *TestHelper) CreateWebSocketClient() (*model.WebSocketClient, *model.AppError) {
+	return model.NewWebSocketClient4("ws://localhost"+utils.Cfg.ServiceSettings.ListenAddress, me.Client.AuthToken)
 }
 
 func (me *TestHelper) CreateUser() *model.User {
@@ -203,6 +274,10 @@ func (me *TestHelper) CreatePost() *model.Post {
 	return me.CreatePostWithClient(me.Client, me.BasicChannel)
 }
 
+func (me *TestHelper) CreatePinnedPost() *model.Post {
+	return me.CreatePinnedPostWithClient(me.Client, me.BasicChannel)
+}
+
 func (me *TestHelper) CreateMessagePost(message string) *model.Post {
 	return me.CreateMessagePostWithClient(me.Client, me.BasicChannel, message)
 }
@@ -213,6 +288,24 @@ func (me *TestHelper) CreatePostWithClient(client *model.Client4, channel *model
 	post := &model.Post{
 		ChannelId: channel.Id,
 		Message:   "message_" + id,
+	}
+
+	utils.DisableDebugLogForTest()
+	rpost, resp := client.CreatePost(post)
+	if resp.Error != nil {
+		panic(resp.Error)
+	}
+	utils.EnableDebugLogForTest()
+	return rpost
+}
+
+func (me *TestHelper) CreatePinnedPostWithClient(client *model.Client4, channel *model.Channel) *model.Post {
+	id := model.NewId()
+
+	post := &model.Post{
+		ChannelId: channel.Id,
+		Message:   "message_" + id,
+		IsPinned:  true,
 	}
 
 	utils.DisableDebugLogForTest()
@@ -296,7 +389,7 @@ func (me *TestHelper) UpdateActiveUser(user *model.User, active bool) {
 func LinkUserToTeam(user *model.User, team *model.Team) {
 	utils.DisableDebugLogForTest()
 
-	err := app.JoinUserToTeam(team, user, utils.GetSiteURL())
+	err := app.JoinUserToTeam(team, user, "")
 	if err != nil {
 		l4g.Error(err.Error())
 		l4g.Close()
@@ -312,7 +405,7 @@ func GenerateTestEmail() string {
 }
 
 func GenerateTestUsername() string {
-	return "fakeuser" + model.NewRandomString(13)
+	return "fakeuser" + model.NewRandomString(10)
 }
 
 func GenerateTestTeamName() string {
@@ -321,6 +414,10 @@ func GenerateTestTeamName() string {
 
 func GenerateTestChannelName() string {
 	return "fakechannel" + model.NewRandomString(10)
+}
+
+func GenerateTestAppName() string {
+	return "fakeoauthapp" + model.NewRandomString(10)
 }
 
 func GenerateTestId() string {
@@ -345,6 +442,16 @@ func CheckUserSanitization(t *testing.T, user *model.User) {
 	}
 }
 
+func CheckTeamSanitization(t *testing.T, team *model.Team) {
+	if team.Email != "" {
+		t.Fatal("email wasn't blank")
+	}
+
+	if team.AllowedDomains != "" {
+		t.Fatal("'allowed domains' wasn't blank")
+	}
+}
+
 func CheckEtag(t *testing.T, data interface{}, resp *model.Response) {
 	if !reflect.ValueOf(data).IsNil() {
 		debug.PrintStack()
@@ -363,6 +470,15 @@ func CheckNoError(t *testing.T, resp *model.Response) {
 	if resp.Error != nil {
 		debug.PrintStack()
 		t.Fatal("Expected no error, got " + resp.Error.Error())
+	}
+}
+
+func CheckCreatedStatus(t *testing.T, resp *model.Response) {
+	if resp.StatusCode != http.StatusCreated {
+		debug.PrintStack()
+		t.Log("actual: " + strconv.Itoa(resp.StatusCode))
+		t.Log("expected: " + strconv.Itoa(http.StatusCreated))
+		t.Fatal("wrong status code")
 	}
 }
 
@@ -441,6 +557,14 @@ func CheckNotImplementedStatus(t *testing.T, resp *model.Response) {
 	}
 }
 
+func CheckOKStatus(t *testing.T, resp *model.Response) {
+	CheckNoError(t, resp)
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("wrong status code. expected %d got %d", http.StatusOK, resp.StatusCode)
+	}
+}
+
 func CheckErrorMessage(t *testing.T, resp *model.Response, errorId string) {
 	if resp.Error == nil {
 		debug.PrintStack()
@@ -453,6 +577,36 @@ func CheckErrorMessage(t *testing.T, resp *model.Response, errorId string) {
 		t.Log("actual: " + resp.Error.Id)
 		t.Log("expected: " + errorId)
 		t.Fatal("incorrect error message")
+	}
+}
+
+func CheckInternalErrorStatus(t *testing.T, resp *model.Response) {
+	if resp.Error == nil {
+		debug.PrintStack()
+		t.Fatal("should have errored with status:" + strconv.Itoa(http.StatusInternalServerError))
+		return
+	}
+
+	if resp.StatusCode != http.StatusInternalServerError {
+		debug.PrintStack()
+		t.Log("actual: " + strconv.Itoa(resp.StatusCode))
+		t.Log("expected: " + strconv.Itoa(http.StatusInternalServerError))
+		t.Fatal("wrong status code")
+	}
+}
+
+func CheckPayLoadTooLargeStatus(t *testing.T, resp *model.Response) {
+	if resp.Error == nil {
+		debug.PrintStack()
+		t.Fatal("should have errored with status:" + strconv.Itoa(http.StatusRequestEntityTooLarge))
+		return
+	}
+
+	if resp.StatusCode != http.StatusRequestEntityTooLarge {
+		debug.PrintStack()
+		t.Log("actual: " + strconv.Itoa(resp.StatusCode))
+		t.Log("expected: " + strconv.Itoa(http.StatusRequestEntityTooLarge))
+		t.Fatal("wrong status code")
 	}
 }
 
@@ -517,4 +671,50 @@ func cleanupTestFile(info *model.FileInfo) error {
 	}
 
 	return nil
+}
+
+func MakeUserChannelAdmin(user *model.User, channel *model.Channel) {
+	utils.DisableDebugLogForTest()
+
+	if cmr := <-app.Srv.Store.Channel().GetMember(channel.Id, user.Id); cmr.Err == nil {
+		cm := cmr.Data.(*model.ChannelMember)
+		cm.Roles = "channel_admin channel_user"
+		if sr := <-app.Srv.Store.Channel().UpdateMember(cm); sr.Err != nil {
+			utils.EnableDebugLogForTest()
+			panic(sr.Err)
+		}
+	} else {
+		utils.EnableDebugLogForTest()
+		panic(cmr.Err)
+	}
+
+	utils.EnableDebugLogForTest()
+}
+
+func UpdateUserToTeamAdmin(user *model.User, team *model.Team) {
+	utils.DisableDebugLogForTest()
+
+	tm := &model.TeamMember{TeamId: team.Id, UserId: user.Id, Roles: model.ROLE_TEAM_USER.Id + " " + model.ROLE_TEAM_ADMIN.Id}
+	if tmr := <-app.Srv.Store.Team().UpdateMember(tm); tmr.Err != nil {
+		utils.EnableDebugLogForTest()
+		l4g.Error(tmr.Err.Error())
+		l4g.Close()
+		time.Sleep(time.Second)
+		panic(tmr.Err)
+	}
+	utils.EnableDebugLogForTest()
+}
+
+func UpdateUserToNonTeamAdmin(user *model.User, team *model.Team) {
+	utils.DisableDebugLogForTest()
+
+	tm := &model.TeamMember{TeamId: team.Id, UserId: user.Id, Roles: model.ROLE_TEAM_USER.Id}
+	if tmr := <-app.Srv.Store.Team().UpdateMember(tm); tmr.Err != nil {
+		utils.EnableDebugLogForTest()
+		l4g.Error(tmr.Err.Error())
+		l4g.Close()
+		time.Sleep(time.Second)
+		panic(tmr.Err)
+	}
+	utils.EnableDebugLogForTest()
 }

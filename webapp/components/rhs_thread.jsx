@@ -1,13 +1,12 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
-import SearchBox from './search_bar.jsx';
 import CreateComment from './create_comment.jsx';
 import RhsHeaderPost from './rhs_header_post.jsx';
 import RootPost from './rhs_root_post.jsx';
 import Comment from './rhs_comment.jsx';
-import FileUploadOverlay from './file_upload_overlay.jsx';
 import FloatingTimestamp from './post_view/components/floating_timestamp.jsx';
+import DateSeparator from './post_view/components/date_separator.jsx';
 
 import PostStore from 'stores/post_store.jsx';
 import UserStore from 'stores/user_store.jsx';
@@ -332,11 +331,8 @@ export default class RhsThread extends React.Component {
             );
         }
 
-        var currentId = UserStore.getCurrentId();
-        var searchForm;
-        if (currentId != null) {
-            searchForm = <SearchBox isCommentsPage={true}/>;
-        }
+        const rootPostDay = Utils.getDateForUnixTicks(selected.create_at);
+        let previousPostDay = rootPostDay;
 
         let profile;
         if (UserStore.getCurrentId() === selected.user_id) {
@@ -355,98 +351,116 @@ export default class RhsThread extends React.Component {
             rootStatus = this.state.statuses[selected.user_id] || 'offline';
         }
 
-        return (
-            <div className='post-right__container'>
-                <FileUploadOverlay overlayType='right'/>
-                <div className='search-bar__container sidebar--right__search-header'>{searchForm}</div>
-                <div className='sidebar-right__body'>
-                    <FloatingTimestamp
-                        isScrolling={this.state.isScrolling}
-                        isMobile={Utils.isMobile()}
-                        createAt={this.state.topRhsPostCreateAt}
-                        isRhsPost={true}
+        const commentsLists = [];
+        for (let i = 0; i < postsArray.length; i++) {
+            const comPost = postsArray[i];
+            let p;
+            if (UserStore.getCurrentId() === comPost.user_id) {
+                p = UserStore.getCurrentUser();
+            } else {
+                p = profiles[comPost.user_id];
+            }
+
+            let isFlagged = false;
+            if (this.state.flaggedPosts) {
+                isFlagged = this.state.flaggedPosts.get(comPost.id) === 'true';
+            }
+
+            let status = 'offline';
+            if (this.state.statuses && p && p.id) {
+                status = this.state.statuses[p.id] || 'offline';
+            }
+
+            const keyPrefix = comPost.id ? comPost.id : comPost.pending_post_id;
+
+            const currentPostDay = Utils.getDateForUnixTicks(comPost.create_at);
+
+            if (currentPostDay.toDateString() !== previousPostDay.toDateString()) {
+                previousPostDay = currentPostDay;
+                commentsLists.push(
+                    <DateSeparator
+                        date={currentPostDay}
+                    />);
+            }
+
+            commentsLists.push(
+                <div key={keyPrefix + 'commentKey'}>
+                    <Comment
+                        ref={comPost.id}
+                        post={comPost}
+                        user={p}
+                        currentUser={this.props.currentUser}
+                        compactDisplay={this.state.compactDisplay}
+                        useMilitaryTime={this.props.useMilitaryTime}
+                        isFlagged={isFlagged}
+                        status={status}
+                        isBusy={this.state.isBusy}
                     />
-                    <RhsHeaderPost
-                        fromFlaggedPosts={this.props.fromFlaggedPosts}
-                        fromSearch={this.props.fromSearch}
-                        isWebrtc={this.props.isWebrtc}
-                        isMentionSearch={this.props.isMentionSearch}
-                        toggleSize={this.props.toggleSize}
-                        shrink={this.props.shrink}
-                    />
-                    <Scrollbars
-                        autoHide={true}
-                        autoHideTimeout={500}
-                        autoHideDuration={500}
-                        renderThumbHorizontal={renderThumbHorizontal}
-                        renderThumbVertical={renderThumbVertical}
-                        renderView={renderView}
-                        onScroll={this.handleScroll}
-                    >
-                        <div className='post-right__scroll'>
-                            <RootPost
-                                ref={selected.id}
-                                post={selected}
-                                commentCount={postsArray.length}
-                                user={profile}
-                                currentUser={this.props.currentUser}
-                                compactDisplay={this.state.compactDisplay}
-                                useMilitaryTime={this.props.useMilitaryTime}
-                                isFlagged={isRootFlagged}
-                                status={rootStatus}
-                                previewCollapsed={this.state.previewsCollapsed}
-                                isBusy={this.state.isBusy}
-                            />
-                            <div
-                                ref='rhspostlist'
-                                className='post-right-comments-container'
-                            >
-                                {postsArray.map((comPost) => {
-                                    let p;
-                                    if (UserStore.getCurrentId() === comPost.user_id) {
-                                        p = UserStore.getCurrentUser();
-                                    } else {
-                                        p = profiles[comPost.user_id];
-                                    }
-
-                                    let isFlagged = false;
-                                    if (this.state.flaggedPosts) {
-                                        isFlagged = this.state.flaggedPosts.get(comPost.id) === 'true';
-                                    }
-
-                                    let status = 'offline';
-                                    if (this.state.statuses && p && p.id) {
-                                        status = this.state.statuses[p.id] || 'offline';
-                                    }
-
-                                    const keyPrefix = comPost.id ? comPost.id : comPost.pending_post_id;
-
-                                    return (
-                                        <Comment
-                                            ref={comPost.id}
-                                            key={keyPrefix + 'commentKey'}
-                                            post={comPost}
-                                            user={p}
-                                            currentUser={this.props.currentUser}
-                                            compactDisplay={this.state.compactDisplay}
-                                            useMilitaryTime={this.props.useMilitaryTime}
-                                            isFlagged={isFlagged}
-                                            status={status}
-                                            isBusy={this.state.isBusy}
-                                        />
-                                    );
-                                })}
-                            </div>
-                            <div className='post-create__container'>
-                                <CreateComment
-                                    channelId={selected.channel_id}
-                                    rootId={selected.id}
-                                    latestPostId={postsArray.length > 0 ? postsArray[postsArray.length - 1].id : selected.id}
-                                />
-                            </div>
-                        </div>
-                    </Scrollbars>
                 </div>
+            );
+        }
+
+        return (
+            <div className='sidebar-right__body'>
+                <FloatingTimestamp
+                    isScrolling={this.state.isScrolling}
+                    isMobile={Utils.isMobile()}
+                    createAt={this.state.topRhsPostCreateAt}
+                    isRhsPost={true}
+                />
+                <RhsHeaderPost
+                    fromFlaggedPosts={this.props.fromFlaggedPosts}
+                    fromSearch={this.props.fromSearch}
+                    fromPinnedPosts={this.props.fromPinnedPosts}
+                    isWebrtc={this.props.isWebrtc}
+                    isMentionSearch={this.props.isMentionSearch}
+                    toggleSize={this.props.toggleSize}
+                    shrink={this.props.shrink}
+                />
+                <Scrollbars
+                    autoHide={true}
+                    autoHideTimeout={500}
+                    autoHideDuration={500}
+                    renderThumbHorizontal={renderThumbHorizontal}
+                    renderThumbVertical={renderThumbVertical}
+                    renderView={renderView}
+                    onScroll={this.handleScroll}
+                >
+                    <div
+                        ref='post-right__scroll'
+                        className='post-right__scroll'
+                    >
+                        <DateSeparator
+                            date={rootPostDay.toDateString()}
+                        />
+                        <RootPost
+                            ref={selected.id}
+                            post={selected}
+                            commentCount={postsArray.length}
+                            user={profile}
+                            currentUser={this.props.currentUser}
+                            compactDisplay={this.state.compactDisplay}
+                            useMilitaryTime={this.props.useMilitaryTime}
+                            isFlagged={isRootFlagged}
+                            status={rootStatus}
+                            previewCollapsed={this.state.previewsCollapsed}
+                            isBusy={this.state.isBusy}
+                        />
+                        <div
+                            ref='rhspostlist'
+                            className='post-right-comments-container'
+                        >
+                            {commentsLists}
+                        </div>
+                        <div className='post-create__container'>
+                            <CreateComment
+                                channelId={selected.channel_id}
+                                rootId={selected.id}
+                                latestPostId={postsArray.length > 0 ? postsArray[postsArray.length - 1].id : selected.id}
+                            />
+                        </div>
+                    </div>
+                </Scrollbars>
             </div>
         );
     }
@@ -460,6 +474,7 @@ RhsThread.defaultProps = {
 RhsThread.propTypes = {
     fromSearch: React.PropTypes.string,
     fromFlaggedPosts: React.PropTypes.bool,
+    fromPinnedPosts: React.PropTypes.bool,
     isWebrtc: React.PropTypes.bool,
     isMentionSearch: React.PropTypes.bool,
     currentUser: React.PropTypes.object.isRequired,

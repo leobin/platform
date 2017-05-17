@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 import $ from 'jquery';
@@ -29,6 +29,15 @@ import * as StatusActions from 'actions/status_actions.jsx';
 import {ActionTypes, Constants, Preferences, SocketEvents, UserStatuses} from 'utils/constants.jsx';
 
 import {browserHistory} from 'react-router/es6';
+
+// Redux actions
+import store from 'stores/redux_store.jsx';
+const dispatch = store.dispatch;
+const getState = store.getState;
+import {batchActions} from 'redux-batched-actions';
+import {viewChannel, getChannelAndMyMember, getChannelStats} from 'mattermost-redux/actions/channels';
+import {setServerVersion} from 'mattermost-redux/actions/general';
+import {ChannelTypes, TeamTypes, UserTypes} from 'mattermost-redux/action_types';
 
 const MAX_WEBSOCKET_FAILS = 7;
 
@@ -61,6 +70,13 @@ export function initialize() {
 
     WebSocketClient.setEventCallback(handleEvent);
     WebSocketClient.setFirstConnectCallback(handleFirstConnect);
+    WebSocketClient.setReconnectCallback(() => reconnect(false));
+    WebSocketClient.setMissedEventCallback(() => {
+        if (global.window.mm_config.EnableDeveloper === 'true') {
+            Client.logClientError('missed websocket event seq=' + WebSocketClient.eventSequence);
+        }
+        reconnect(false);
+    });
     WebSocketClient.setCloseCallback(handleClose);
     WebSocketClient.initialize(connUrl);
 }
@@ -146,6 +162,10 @@ function handleEvent(msg) {
         handleUpdateTeamEvent(msg);
         break;
 
+    case SocketEvents.ADDED_TO_TEAM:
+        handleTeamAddedEvent(msg);
+        break;
+
     case SocketEvents.USER_ADDED:
         handleUserAddedEvent(msg);
         break;
@@ -172,6 +192,14 @@ function handleEvent(msg) {
 
     case SocketEvents.PREFERENCE_CHANGED:
         handlePreferenceChangedEvent(msg);
+        break;
+
+    case SocketEvents.PREFERENCES_CHANGED:
+        handlePreferencesChangedEvent(msg);
+        break;
+
+    case SocketEvents.PREFERENCES_DELETED:
+        handlePreferencesDeletedEvent(msg);
         break;
 
     case SocketEvents.TYPING:
@@ -210,8 +238,8 @@ function handleNewPostEvent(msg) {
     posts[post.id] = post;
     loadProfilesForPosts(posts);
 
-    if (UserStore.getStatus(post.user_id) !== UserStatuses.ONLINE) {
-        StatusActions.loadStatusesByIds([post.user_id]);
+    if (post.user_id !== UserStore.getCurrentId()) {
+        UserStore.setStatus(post.user_id, UserStatuses.ONLINE);
     }
 }
 
@@ -224,7 +252,7 @@ function handlePostEditEvent(msg) {
     // Update channel state
     if (ChannelStore.getCurrentId() === msg.broadcast.channel_id) {
         if (window.isActive) {
-            AsyncClient.viewChannel();
+            viewChannel(ChannelStore.getCurrentId())(dispatch, getState);
         }
     }
 }
@@ -234,18 +262,53 @@ function handlePostDeleteEvent(msg) {
     GlobalActions.emitPostDeletedEvent(post);
 }
 
+function handleTeamAddedEvent(msg) {
+    Client.getTeam(msg.data.team_id, (team) => {
+        AppDispatcher.handleServerAction({
+            type: ActionTypes.RECEIVED_TEAM,
+            team
+        });
+
+        Client.getMyTeamMembers((data) => {
+            AppDispatcher.handleServerAction({
+                type: ActionTypes.RECEIVED_MY_TEAM_MEMBERS,
+                team_members: data
+            });
+            AsyncClient.getMyTeamsUnread();
+        }, (err) => {
+            AsyncClient.dispatchError(err, 'getMyTeamMembers');
+        });
+    }, (err) => {
+        AsyncClient.dispatchError(err, 'getTeam');
+    });
+}
+
 function handleLeaveTeamEvent(msg) {
     if (UserStore.getCurrentId() === msg.data.user_id) {
         TeamStore.removeMyTeamMember(msg.data.team_id);
 
         // if they are on the team being removed redirect them to default team
         if (TeamStore.getCurrentId() === msg.data.team_id) {
-            TeamStore.setCurrentId('');
             Client.setTeamId('');
             BrowserStore.removeGlobalItem('team');
             BrowserStore.removeGlobalItem(msg.data.team_id);
-            GlobalActions.redirectUserToDefaultTeam();
+
+            if (!global.location.pathname.startsWith('/admin_console')) {
+                GlobalActions.redirectUserToDefaultTeam();
+            }
         }
+
+        dispatch(batchActions([
+            {
+                type: UserTypes.RECEIVED_PROFILE_NOT_IN_TEAM,
+                data: {user_id: msg.data.user_id},
+                id: msg.data.team_id
+            },
+            {
+                type: TeamTypes.REMOVE_MEMBER_FROM_TEAM,
+                data: {team_id: msg.data.team_id, user_id: msg.data.user_id}
+            }
+        ]));
     } else {
         UserStore.removeProfileFromTeam(msg.data.team_id, msg.data.user_id);
         TeamStore.removeMemberInTeam(msg.data.team_id, msg.data.user_id);
@@ -257,18 +320,18 @@ function handleUpdateTeamEvent(msg) {
 }
 
 function handleDirectAddedEvent(msg) {
-    AsyncClient.getChannel(msg.broadcast.channel_id);
+    getChannelAndMyMember(msg.broadcast.channel_id)(dispatch, getState);
     PreferenceStore.setPreference(Preferences.CATEGORY_DIRECT_CHANNEL_SHOW, msg.data.teammate_id, 'true');
     loadProfilesForSidebar();
 }
 
 function handleUserAddedEvent(msg) {
     if (ChannelStore.getCurrentId() === msg.broadcast.channel_id) {
-        AsyncClient.getChannelStats();
+        getChannelStats(ChannelStore.getCurrentId())(dispatch, getState);
     }
 
     if (TeamStore.getCurrentId() === msg.data.team_id && UserStore.getCurrentId() === msg.data.user_id) {
-        AsyncClient.getChannel(msg.broadcast.channel_id);
+        getChannelAndMyMember(msg.broadcast.channel_id)(dispatch, getState);
     }
 }
 
@@ -286,8 +349,13 @@ function handleUserRemovedEvent(msg) {
             BrowserStore.setItem('channel-removed-state', sentState);
             $('#removed_from_channel').modal('show');
         }
+
+        dispatch({
+            type: ChannelTypes.LEAVE_CHANNEL,
+            data: {id: msg.data.channel_id, user_id: msg.broadcast.user_id}
+        });
     } else if (ChannelStore.getCurrentId() === msg.broadcast.channel_id) {
-        AsyncClient.getChannelStats();
+        getChannelStats(ChannelStore.getCurrentId())(dispatch, getState);
     }
 }
 
@@ -295,7 +363,6 @@ function handleUserUpdatedEvent(msg) {
     const user = msg.data.user;
     if (UserStore.getCurrentId() !== user.id) {
         UserStore.saveProfile(user);
-        UserStore.emitChange(user.id);
     }
 }
 
@@ -304,7 +371,7 @@ function handleChannelCreatedEvent(msg) {
     const teamId = msg.data.team_id;
 
     if (TeamStore.getCurrentId() === teamId && !ChannelStore.getChannelById(channelId)) {
-        AsyncClient.getChannel(channelId);
+        getChannelAndMyMember(channelId)(dispatch, getState);
     }
 }
 
@@ -313,6 +380,7 @@ function handleChannelDeletedEvent(msg) {
         const teamUrl = TeamStore.getCurrentTeamRelativeUrl();
         browserHistory.push(teamUrl + '/channels/' + Constants.DEFAULT_CHANNEL);
     }
+    dispatch({type: ChannelTypes.RECEIVED_CHANNEL_DELETED, data: {id: msg.data.channel_id, team_id: msg.broadcast.team_id}}, getState);
     loadChannelsForCurrentUser();
 }
 
@@ -321,11 +389,21 @@ function handlePreferenceChangedEvent(msg) {
     GlobalActions.emitPreferenceChangedEvent(preference);
 }
 
+function handlePreferencesChangedEvent(msg) {
+    const preferences = JSON.parse(msg.data.preferences);
+    GlobalActions.emitPreferencesChangedEvent(preferences);
+}
+
+function handlePreferencesDeletedEvent(msg) {
+    const preferences = JSON.parse(msg.data.preferences);
+    GlobalActions.emitPreferencesDeletedEvent(preferences);
+}
+
 function handleUserTypingEvent(msg) {
     GlobalActions.emitRemoteUserTypingEvent(msg.broadcast.channel_id, msg.data.user_id, msg.data.parent_id);
 
-    if (UserStore.getStatus(msg.data.user_id) !== UserStatuses.ONLINE) {
-        StatusActions.loadStatusesByIds([msg.data.user_id]);
+    if (msg.data.user_id !== UserStore.getCurrentId()) {
+        UserStore.setStatus(msg.data.user_id, UserStatuses.ONLINE);
     }
 }
 
@@ -335,7 +413,7 @@ function handleStatusChangedEvent(msg) {
 
 function handleHelloEvent(msg) {
     Client.serverVersion = msg.data.server_version;
-    AsyncClient.checkVersion();
+    setServerVersion(msg.data.server_version)(dispatch, getState);
 }
 
 function handleWebrtc(msg) {

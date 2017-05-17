@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 package main
@@ -18,6 +18,7 @@ import (
 	"github.com/mattermost/platform/model"
 	"github.com/mattermost/platform/utils"
 	"github.com/mattermost/platform/web"
+	"github.com/mattermost/platform/wsapi"
 	"github.com/spf13/cobra"
 )
 
@@ -35,10 +36,7 @@ func runServerCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Backwards compatibility with -config flag
-	if flagConfigFile != "" {
-		config = flagConfigFile
-	}
+	utils.CfgDisableConfigWatch, _ = cmd.Flags().GetBool("disableconfigwatch")
 
 	runServer(config)
 	return nil
@@ -64,13 +62,13 @@ func runServer(configFileLocation string) {
 		*utils.Cfg.ServiceSettings.EnableDeveloper = true
 	}
 
-	cmdUpdateDb30()
-
 	app.NewServer()
 	app.InitStores()
 	api.InitRouter()
+	wsapi.InitRouter()
 	api4.InitApi(false)
 	api.InitApi()
+	wsapi.InitApi()
 	web.InitWeb()
 
 	if model.BuildEnterpriseReady == "true" {
@@ -86,6 +84,8 @@ func runServer(configFileLocation string) {
 		utils.Cfg.TeamSettings.MaxNotificationsPerChannel = &MaxNotificationsPerChannelDefault
 	}
 
+	app.ReloadConfig()
+
 	resetStatuses()
 
 	app.StartServer()
@@ -99,6 +99,8 @@ func runServer(configFileLocation string) {
 	utils.RegenerateClientConfig()
 	go runSecurityJob()
 	go runDiagnosticsJob()
+
+	go runTokenCleanupJob()
 
 	if complianceI := einterfaces.GetComplianceInterface(); complianceI != nil {
 		complianceI.StartComplianceDailyJob()
@@ -139,6 +141,11 @@ func runDiagnosticsJob() {
 	model.CreateRecurringTask("Diagnostics", doDiagnostics, time.Hour*24)
 }
 
+func runTokenCleanupJob() {
+	doTokenCleanup()
+	model.CreateRecurringTask("Token Cleanup", doTokenCleanup, time.Hour*1)
+}
+
 func resetStatuses() {
 	if result := <-app.Srv.Store.Status().ResetAll(); result.Err != nil {
 		l4g.Error(utils.T("mattermost.reset_status.error"), result.Err.Error())
@@ -168,4 +175,8 @@ func doDiagnostics() {
 	if *utils.Cfg.LogSettings.EnableDiagnostics {
 		app.SendDailyDiagnostics()
 	}
+}
+
+func doTokenCleanup() {
+	app.Srv.Store.Token().Cleanup()
 }

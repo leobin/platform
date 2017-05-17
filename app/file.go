@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 package app
@@ -84,7 +84,7 @@ func ReadFile(path string) ([]byte, *model.AppError) {
 			return f, nil
 		}
 	} else {
-		return nil, model.NewLocAppError("ReadFile", "api.file.read_file.configured.app_error", nil, "")
+		return nil, model.NewAppError("ReadFile", "api.file.read_file.configured.app_error", nil, "", http.StatusNotImplemented)
 	}
 }
 
@@ -359,6 +359,11 @@ func MigrateFilenamesToFileInfos(post *model.Post) []*model.FileInfo {
 }
 
 func GeneratePublicLink(siteURL string, info *model.FileInfo) string {
+	hash := GeneratePublicLinkHash(info.Id, *utils.Cfg.FileSettings.PublicLinkSalt)
+	return fmt.Sprintf("%s/files/%v/public?h=%s", siteURL, info.Id, hash)
+}
+
+func GeneratePublicLinkV3(siteURL string, info *model.FileInfo) string {
 	hash := GeneratePublicLinkHash(info.Id, *utils.Cfg.FileSettings.PublicLinkSalt)
 	return fmt.Sprintf("%s%s/public/files/%v/get?h=%s", siteURL, model.API_URL_SUFFIX_V3, info.Id, hash)
 }

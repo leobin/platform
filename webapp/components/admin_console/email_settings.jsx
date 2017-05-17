@@ -1,8 +1,11 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 import React from 'react';
 
+import ErrorStore from 'stores/error_store.jsx';
+
+import {ErrorBarTypes} from 'utils/constants.jsx';
 import * as Utils from 'utils/utils.jsx';
 
 import AdminSettings from './admin_settings.jsx';
@@ -19,6 +22,8 @@ export default class EmailSettings extends AdminSettings {
 
         this.getConfigFromState = this.getConfigFromState.bind(this);
 
+        this.handleSaved = this.handleSaved.bind(this);
+
         this.renderSettings = this.renderSettings.bind(this);
     }
 
@@ -34,8 +39,15 @@ export default class EmailSettings extends AdminSettings {
         config.EmailSettings.ConnectionSecurity = this.state.connectionSecurity;
         config.EmailSettings.EnableEmailBatching = this.state.enableEmailBatching;
         config.ServiceSettings.EnableSecurityFixAlert = this.state.enableSecurityFixAlert;
+        config.EmailSettings.SkipServerCertificateVerification = this.state.skipServerCertificateVerification;
 
         return config;
+    }
+
+    handleSaved(newConfig) {
+        if (newConfig.EmailSettings.SendEmailNotifications) {
+            ErrorStore.clearError(ErrorBarTypes.PREVIEW_MODE);
+        }
     }
 
     getStateFromConfig(config) {
@@ -50,18 +62,17 @@ export default class EmailSettings extends AdminSettings {
             smtpPort: config.EmailSettings.SMTPPort,
             connectionSecurity: config.EmailSettings.ConnectionSecurity,
             enableEmailBatching: config.EmailSettings.EnableEmailBatching,
+            skipServerCertificateVerification: config.EmailSettings.SkipServerCertificateVerification,
             enableSecurityFixAlert: config.ServiceSettings.EnableSecurityFixAlert
         };
     }
 
     renderTitle() {
         return (
-            <h3>
-                <FormattedMessage
-                    id='admin.notifications.email'
-                    defaultMessage='Email'
-                />
-            </h3>
+            <FormattedMessage
+                id='admin.notifications.email'
+                defaultMessage='Email'
+            />
         );
     }
 
@@ -275,6 +286,23 @@ export default class EmailSettings extends AdminSettings {
                     config={this.props.config}
                     getConfigFromState={this.getConfigFromState}
                     disabled={!this.state.sendEmailNotifications}
+                />
+                <BooleanSetting
+                    id='skipServerCertificateVerification'
+                    label={
+                        <FormattedMessage
+                            id='admin.email.skipServerCertificateVerification.title'
+                            defaultMessage='Skip Server Certificate Verification: '
+                        />
+                    }
+                    helpText={
+                        <FormattedMessage
+                            id='admin.email.skipServerCertificateVerification.description'
+                            defaultMessage='When true, Mattermost will not verify the email server certificate.'
+                        />
+                    }
+                    value={this.state.skipServerCertificateVerification}
+                    onChange={this.handleChange}
                 />
                 <BooleanSetting
                     id='enableSecurityFixAlert'

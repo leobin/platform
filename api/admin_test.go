@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 package api
@@ -79,9 +79,6 @@ func TestGetConfig(t *testing.T) {
 			t.Fatal("did not sanitize properly")
 		}
 		if cfg.EmailSettings.InviteSalt != model.FAKE_SETTING {
-			t.Fatal("did not sanitize properly")
-		}
-		if cfg.EmailSettings.PasswordResetSalt != model.FAKE_SETTING {
 			t.Fatal("did not sanitize properly")
 		}
 		if cfg.EmailSettings.SMTPPassword != model.FAKE_SETTING && len(cfg.EmailSettings.SMTPPassword) != 0 {
@@ -225,7 +222,7 @@ func TestGetTeamAnalyticsStandard(t *testing.T) {
 			t.Fatal()
 		}
 
-		if rows[0].Value != 3 {
+		if rows[0].Value != 4 {
 			t.Log(rows.ToJson())
 			t.Fatal()
 		}
@@ -245,7 +242,7 @@ func TestGetTeamAnalyticsStandard(t *testing.T) {
 			t.Fatal()
 		}
 
-		if rows[2].Value != 5 {
+		if rows[2].Value != 6 {
 			t.Log(rows.ToJson())
 			t.Fatal()
 		}

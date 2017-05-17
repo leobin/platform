@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 package api
@@ -61,7 +61,6 @@ var BaseRoutes *Routes
 func InitRouter() {
 	app.Srv.Router = mux.NewRouter()
 	app.Srv.Router.NotFoundHandler = http.HandlerFunc(Handle404)
-	app.Srv.WebSocketRouter = app.NewWebSocketRouter()
 }
 
 func InitApi() {

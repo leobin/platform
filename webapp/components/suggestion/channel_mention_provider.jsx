@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 import Suggestion from './suggestion.jsx';
@@ -62,12 +62,12 @@ export default class ChannelMentionProvider extends Provider {
 
         if (!captured) {
             // Not a channel mention
-            return;
+            return false;
         }
 
         if (this.lastCompletedWord && captured[0].startsWith(this.lastCompletedWord)) {
             // It appears we're still matching a channel handle that we already completed
-            return;
+            return false;
         }
 
         // Clear the last completed word since we've started to match new text
@@ -75,7 +75,7 @@ export default class ChannelMentionProvider extends Provider {
 
         const prefix = captured[3];
 
-        this.startNewRequest(prefix);
+        this.startNewRequest(suggestionId, prefix);
 
         autocompleteChannels(
             prefix,
@@ -125,6 +125,8 @@ export default class ChannelMentionProvider extends Provider {
                 });
             }
         );
+
+        return true;
     }
 
     handleCompleteWord(term) {

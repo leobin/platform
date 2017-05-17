@@ -5,6 +5,8 @@ const Preferences = Constants.Preferences;
 import * as Utils from 'utils/utils.jsx';
 
 import UserStore from 'stores/user_store.jsx';
+import ChannelStore from 'stores/channel_store.jsx';
+import TeamStore from 'stores/team_store.jsx';
 import PreferenceStore from 'stores/preference_store.jsx';
 import LocalizationStore from 'stores/localization_store.jsx';
 
@@ -102,11 +104,38 @@ export function sortChannelsByDisplayName(a, b) {
         return (typeToPrefixMap[a.type] || defaultPrefix).localeCompare((typeToPrefixMap[b.type] || defaultPrefix), locale);
     }
 
-    if (a.display_name !== b.display_name) {
-        return a.display_name.localeCompare(b.display_name, locale, {numeric: true});
+    const aDisplayName = getChannelDisplayName(a);
+    const bDisplayName = getChannelDisplayName(b);
+
+    if (aDisplayName !== bDisplayName) {
+        return aDisplayName.localeCompare(bDisplayName, locale, {numeric: true});
     }
 
     return a.name.localeCompare(b.name, locale, {numeric: true});
+}
+
+const MAX_CHANNEL_NAME_LENGTH = 64;
+
+export function getChannelDisplayName(channel) {
+    if (channel.type !== Constants.GM_CHANNEL) {
+        return channel.display_name;
+    }
+
+    const currentUser = UserStore.getCurrentUser();
+
+    if (currentUser) {
+        let displayName = channel.display_name;
+        if (displayName.length >= MAX_CHANNEL_NAME_LENGTH) {
+            displayName += '...';
+        }
+        displayName = displayName.replace(currentUser.username + ', ', '').replace(currentUser.username, '').trim();
+        if (displayName[displayName.length - 1] === ',') {
+            return displayName.slice(0, -1);
+        }
+        return displayName;
+    }
+
+    return channel.display_name;
 }
 
 export function showCreateOption(channelType, isAdmin, isSystemAdmin) {
@@ -191,6 +220,26 @@ export function showDeleteOption(channel, isAdmin, isSystemAdmin, isChannelAdmin
     return true;
 }
 
+export function canManageMembers(channel, isSystemAdmin, isTeamAdmin, isChannelAdmin) {
+    if (global.window.mm_license.IsLicensed !== 'true') {
+        return true;
+    }
+
+    if (channel.type === Constants.PRIVATE_CHANNEL) {
+        if (global.window.mm_config.RestrictPrivateChannelManageMembers === Constants.PERMISSIONS_SYSTEM_ADMIN && !isSystemAdmin) {
+            return false;
+        }
+        if (global.window.mm_config.RestrictPrivateChannelManageMembers === Constants.PERMISSIONS_TEAM_ADMIN && !isTeamAdmin && !isSystemAdmin) {
+            return false;
+        }
+        if (global.window.mm_config.RestrictPrivateChannelManageMembers === Constants.PERMISSIONS_CHANNEL_ADMIN && !isChannelAdmin && !isTeamAdmin && !isSystemAdmin) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 export function buildGroupChannelName(channelId) {
     const profiles = UserStore.getProfileListInChannel(channelId, true);
     let displayName = '';
@@ -202,6 +251,29 @@ export function buildGroupChannelName(channelId) {
     }
 
     return displayName;
+}
+
+export function getCountsStateFromStores(team = TeamStore.getCurrent(), teamMembers = TeamStore.getMyTeamMembers(), unreadCounts = ChannelStore.getUnreadCounts()) {
+    let mentionCount = 0;
+    let messageCount = 0;
+
+    teamMembers.forEach((member) => {
+        if (member.team_id !== TeamStore.getCurrentId()) {
+            mentionCount += (member.mention_count || 0);
+            messageCount += (member.msg_count || 0);
+        }
+    });
+
+    Object.keys(unreadCounts).forEach((chId) => {
+        const channel = ChannelStore.get(chId);
+
+        if (channel && (channel.type === Constants.DM_CHANNEL || channel.type === Constants.GM_CHANNEL || channel.team_id === team.id)) {
+            messageCount += unreadCounts[chId].msgs;
+            mentionCount += unreadCounts[chId].mentions;
+        }
+    });
+
+    return {mentionCount, messageCount};
 }
 
 /*

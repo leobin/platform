@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 import PreferenceStore from 'stores/preference_store.jsx';
@@ -71,7 +71,7 @@ export default class EditChannelPurposeModal extends React.Component {
             },
             (err) => {
                 if (err.id === 'api.context.invalid_param.app_error') {
-                    this.setState({serverError: Utils.localizeMessage('edit_channel_puropse_modal.error', 'This channel purpose is too long, please enter a shorter one')});
+                    this.setState({serverError: Utils.localizeMessage('edit_channel_purpose_modal.error', 'This channel purpose is too long, please enter a shorter one')});
                 } else {
                     this.setState({serverError: err.message});
                 }
@@ -110,17 +110,17 @@ export default class EditChannelPurposeModal extends React.Component {
             );
         }
 
-        let channelType = (
+        let channelPurposeModal = (
             <FormattedMessage
-                id='edit_channel_purpose_modal.channel'
-                defaultMessage='Channel'
+                id='edit_channel_purpose_modal.body'
+                defaultMessage='Describe how this channel should be used. This text appears in the channel list in the "More..." menu and helps others decide whether to join.'
             />
         );
-        if (this.props.channel.type === Constants.PRIVATE_CHANNEL) {
-            channelType = (
+        if (this.props.channel.type === 'P') {
+            channelPurposeModal = (
                 <FormattedMessage
-                    id='edit_channel_purpose_modal.group'
-                    defaultMessage='Group'
+                    id='edit_channel_private_purpose_modal.body'
+                    defaultMessage='This text appears in the \"View Info\" modal of the private channel.'
                 />
             );
         }
@@ -140,13 +140,7 @@ export default class EditChannelPurposeModal extends React.Component {
                 </Modal.Header>
                 <Modal.Body>
                     <p>
-                        <FormattedMessage
-                            id='edit_channel_purpose_modal.body'
-                            defaultMessage='Describe how this {type} should be used. This text appears in the channel list in the "More..." menu and helps others decide whether to join.'
-                            values={{
-                                type: (channelType)
-                            }}
-                        />
+                        {channelPurposeModal}
                     </p>
                     <textarea
                         ref='purpose'

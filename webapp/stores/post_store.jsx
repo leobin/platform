@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 import AppDispatcher from '../dispatcher/app_dispatcher.jsx';
@@ -16,6 +16,7 @@ const FOCUSED_POST_CHANGE = 'focused_post_change';
 const EDIT_POST_EVENT = 'edit_post';
 const POSTS_VIEW_JUMP_EVENT = 'post_list_jump';
 const SELECTED_POST_CHANGE_EVENT = 'selected_post_change';
+const POST_PINNED_CHANGE_EVENT = 'post_pinned_change';
 
 class PostStoreClass extends EventEmitter {
     constructor() {
@@ -259,22 +260,42 @@ class PostStoreClass extends EventEmitter {
         this.postsInfo[id].postList = combinedPosts;
     }
 
+    focusedPostListHasPost(id) {
+        const focusedPostId = this.getFocusedPostId();
+        if (focusedPostId == null) {
+            return false;
+        }
+
+        const focusedPostList = makePostListNonNull(this.getAllPosts(focusedPostId));
+        return focusedPostList.posts.hasOwnProperty(id);
+    }
+
     storePost(post, isNewPost = false) {
-        const postList = makePostListNonNull(this.getAllPosts(post.channel_id));
+        const ids = [
+            post.channel_id
+        ];
 
-        if (post.pending_post_id !== '') {
-            this.removePendingPost(post.channel_id, post.pending_post_id);
+        // update the post in the permalink view if it's there
+        if (!isNewPost && this.focusedPostListHasPost(post.id)) {
+            ids.push(this.getFocusedPostId());
         }
 
-        post.pending_post_id = '';
+        ids.forEach((id) => {
+            const postList = makePostListNonNull(this.getAllPosts(id));
+            if (post.pending_post_id !== '') {
+                this.removePendingPost(post.channel_id, post.pending_post_id);
+            }
 
-        postList.posts[post.id] = post;
-        if (isNewPost && postList.order.indexOf(post.id) === -1) {
-            postList.order.unshift(post.id);
-        }
+            post.pending_post_id = '';
 
-        this.makePostsInfo(post.channel_id);
-        this.postsInfo[post.channel_id].postList = postList;
+            postList.posts[post.id] = post;
+            if (isNewPost && postList.order.indexOf(post.id) === -1) {
+                postList.order.unshift(post.id);
+            }
+
+            this.makePostsInfo(post.channel_id);
+            this.postsInfo[id].postList = postList;
+        });
     }
 
     storeFocusedPost(postId, channelId, postList) {
@@ -488,8 +509,8 @@ class PostStoreClass extends EventEmitter {
         return threadPosts;
     }
 
-    emitSelectedPostChange(fromSearch, fromFlaggedPosts) {
-        this.emit(SELECTED_POST_CHANGE_EVENT, fromSearch, fromFlaggedPosts);
+    emitSelectedPostChange(fromSearch, fromFlaggedPosts, fromPinnedPosts) {
+        this.emit(SELECTED_POST_CHANGE_EVENT, fromSearch, fromFlaggedPosts, fromPinnedPosts);
     }
 
     addSelectedPostChangeListener(callback) {
@@ -498,6 +519,18 @@ class PostStoreClass extends EventEmitter {
 
     removeSelectedPostChangeListener(callback) {
         this.removeListener(SELECTED_POST_CHANGE_EVENT, callback);
+    }
+
+    emitPostPinnedChange() {
+        this.emit(POST_PINNED_CHANGE_EVENT);
+    }
+
+    addPostPinnedChangeListener(callback) {
+        this.on(POST_PINNED_CHANGE_EVENT, callback);
+    }
+
+    removePostPinnedChangeListener(callback) {
+        this.removeListener(POST_PINNED_CHANGE_EVENT, callback);
     }
 
     getCurrentUsersLatestPost(channelId, rootId) {
@@ -684,7 +717,11 @@ PostStore.dispatchToken = AppDispatcher.register((payload) => {
         break;
     case ActionTypes.RECEIVED_POST_SELECTED:
         PostStore.storeSelectedPostId(action.postId);
-        PostStore.emitSelectedPostChange(action.from_search, action.from_flagged_posts);
+        PostStore.emitSelectedPostChange(action.from_search, action.from_flagged_posts, action.from_pinned_posts);
+        break;
+    case ActionTypes.RECEIVED_POST_PINNED:
+    case ActionTypes.RECEIVED_POST_UNPINNED:
+        PostStore.emitPostPinnedChange();
         break;
     default:
     }

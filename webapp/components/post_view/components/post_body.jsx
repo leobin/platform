@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 import UserStore from 'stores/user_store.jsx';
@@ -163,7 +163,10 @@ export default class PostBody extends React.Component {
                 className={postClass}
             >
                 {loading}
-                <PostMessageContainer post={this.props.post}/>
+                <PostMessageContainer
+                    isLastPost={this.props.isLastPost}
+                    post={this.props.post}
+                />
             </div>
         );
 
@@ -193,10 +196,7 @@ export default class PostBody extends React.Component {
                 <div className={'post__body ' + mentionHighlightClass}>
                     {messageWithAdditionalContent}
                     {fileAttachmentHolder}
-                    <ReactionListContainer
-                        post={post}
-                        currentUserId={this.props.currentUser.id}
-                    />
+                    <ReactionListContainer post={post}/>
                 </div>
             </div>
         );
@@ -208,6 +208,7 @@ PostBody.propTypes = {
     currentUser: React.PropTypes.object.isRequired,
     parentPost: React.PropTypes.object,
     retryPost: React.PropTypes.func,
+    isLastPost: React.PropTypes.bool,
     handleCommentClick: React.PropTypes.func.isRequired,
     compactDisplay: React.PropTypes.bool,
     previewCollapsed: React.PropTypes.string,

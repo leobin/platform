@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 import * as TextFormatting from './text_formatting.jsx';
@@ -156,13 +156,16 @@ class MattermostMarkdownRenderer extends marked.Renderer {
         return out;
     }
 
-    heading(text, level, raw) {
-        const id = `${this.options.headerPrefix}${raw.toLowerCase().replace(/[^\w]+/g, '-')}`;
-        return `<h${level} id="${id}" class="markdown__heading">${text}</h${level}>`;
+    heading(text, level) {
+        return `<h${level} class="markdown__heading">${text}</h${level}>`;
     }
 
     link(href, title, text) {
         let outHref = href;
+
+        if (this.formattingOptions.linkFilter && !this.formattingOptions.linkFilter(outHref)) {
+            return text;
+        }
 
         try {
             let unescaped = unescape(href);

@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 package utils
@@ -12,6 +12,8 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"strconv"
 	"strings"
 
@@ -110,6 +112,31 @@ func ValidateLicense(signed []byte) (bool, string) {
 	}
 
 	return true, string(plaintext)
+}
+
+func GetLicenseFileFromDisk(fileName string) []byte {
+	file, err := os.Open(fileName)
+	if err != nil {
+		l4g.Error("Failed to open license key from disk at %v err=%v", fileName, err.Error())
+		return nil
+	}
+	defer file.Close()
+
+	licenseBytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		l4g.Error("Failed to read license key from disk at %v err=%v", fileName, err.Error())
+		return nil
+	}
+
+	return licenseBytes
+}
+
+func GetLicenseFileLocation(fileLocation string) string {
+	if fileLocation == "" {
+		return FindDir("config") + "mattermost.mattermost-license"
+	} else {
+		return fileLocation
+	}
 }
 
 func getClientLicense(l *model.License) map[string]string {

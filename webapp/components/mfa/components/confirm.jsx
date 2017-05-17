@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 import Constants from 'utils/constants.jsx';
@@ -7,6 +7,8 @@ const KeyCodes = Constants.KeyCodes;
 import React from 'react';
 import {FormattedMessage, FormattedHTMLMessage} from 'react-intl';
 import {browserHistory} from 'react-router/es6';
+
+import {loadMe} from 'actions/user_actions.jsx';
 
 export default class Confirm extends React.Component {
     constructor(props) {
@@ -25,7 +27,9 @@ export default class Confirm extends React.Component {
 
     submit(e) {
         e.preventDefault();
-        browserHistory.push('/');
+        loadMe(() => {
+            browserHistory.push('/');
+        });
     }
 
     onKeyPress(e) {

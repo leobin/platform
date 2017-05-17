@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 package app
@@ -11,12 +11,12 @@ import (
 	"github.com/mattermost/platform/utils"
 )
 
-func GetComplianceReports() (model.Compliances, *model.AppError) {
+func GetComplianceReports(page, perPage int) (model.Compliances, *model.AppError) {
 	if !*utils.Cfg.ComplianceSettings.Enable || !utils.IsLicensed || !*utils.License.Features.Compliance {
 		return nil, model.NewLocAppError("GetComplianceReports", "ent.compliance.licence_disable.app_error", nil, "")
 	}
 
-	if result := <-Srv.Store.Compliance().GetAll(); result.Err != nil {
+	if result := <-Srv.Store.Compliance().GetAll(page*perPage, perPage); result.Err != nil {
 		return nil, result.Err
 	} else {
 		return result.Data.(model.Compliances), nil

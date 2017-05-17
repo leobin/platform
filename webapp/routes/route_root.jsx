@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 import * as RouteUtils from 'routes/route_utils.jsx';
@@ -149,7 +149,7 @@ export default {
                                     {
                                         path: 'select_team',
                                         getComponents: (location, callback) => {
-                                            System.import('components/select_team/select_team.jsx').then(RouteUtils.importComponentSuccess(callback));
+                                            System.import('components/select_team').then(RouteUtils.importComponentSuccess(callback));
                                         }
                                     },
                                     {

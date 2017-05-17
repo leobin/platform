@@ -105,7 +105,7 @@
   },
   {
     "id": "api.admin.test_email.subject",
-    "translation": "Mattermost - Test des réglages e-mail"
+    "translation": "Mattermost - Test des paramètres e-mail"
   },
   {
     "id": "api.admin.upload_brand_image.array.app_error",
@@ -148,6 +148,10 @@
     "translation": "Impossible de récupérer l'utilisateur pour vérifier les permissions."
   },
   {
+    "id": "api.brand.init.debug",
+    "translation": "Initialisation des routes de l'API de marque"
+  },
+  {
     "id": "api.channel.add_member.added",
     "translation": "%v a été ajouté au canal par %v"
   },
@@ -181,11 +185,11 @@
   },
   {
     "id": "api.channel.can_manage_channel.private_restricted_system_admin.app_error",
-    "translation": "La création et l'administration de groupes privés sont réservées aux administrateurs système."
+    "translation": "La gestion et la création de canaux privés sont réservés aux administrateurs systèmes."
   },
   {
     "id": "api.channel.can_manage_channel.private_restricted_team_admin.app_error",
-    "translation": "La création et l'administration du canal public sont réservées aux administrateurs systèmes et administrateurs d'équipes."
+    "translation": "La gestion et la création de canaux privés sont réservés aux administrateurs d'équipes et administrateurs systèmes."
   },
   {
     "id": "api.channel.can_manage_channel.public_restricted_system_admin.app_error",
@@ -284,6 +288,10 @@
     "translation": "Initialisation des routes de l'API d'administration"
   },
   {
+    "id": "api.channel.join_channel.already_deleted.app_error",
+    "translation": "Le can est déjà supprimé"
+  },
+  {
     "id": "api.channel.join_channel.permissions.app_error",
     "translation": "Vous n'avez pas les permissions requises"
   },
@@ -301,7 +309,7 @@
   },
   {
     "id": "api.channel.leave.last_member.app_error",
-    "translation": "Vous êtes le seul membre restant, veuillez supprimer le groupe privé plutôt que d'essayer de le quitter."
+    "translation": "Vous êtes le seul membre restant, essayez de supprimer le groupe privé plutôt que d'essayer de le quitter."
   },
   {
     "id": "api.channel.leave.left",
@@ -380,8 +388,12 @@
     "translation": "Échec de la tentative de mise à jour du canal par défaut {{.Channel}}"
   },
   {
-    "id": "api.channel.update_last_viewed_at.get_unread_count_for_channel.errord",
-    "translation": "Impossible de récupérer le nombre de messages non lus pour user_id=%v et channel_id=%v, err=%v"
+    "id": "api.channel.update_last_viewed_at.get_unread_count_for_channel.error",
+    "translation": "Impossible de récupérer le nombre de messages non lus pour l'user_id=%v et le channel_id=%v, err=%v"
+  },
+  {
+    "id": "api.cluster.init.debug",
+    "translation": "Initialisation des routes de l'API de cluster"
   },
   {
     "id": "api.command.admin_only.app_error",
@@ -800,12 +812,20 @@
     "translation": "haussement"
   },
   {
+    "id": "api.compliance.init.debug",
+    "translation": "Initialisation des routes de l'API de compatibilité"
+  },
+  {
+    "id": "api.config.client.old_format.app_error",
+    "translation": "Le nouveau format pour la configuration du client n'est pas encore supporté. Veuillez spécifier format=old dans la chaîne de requête (query string)"
+  },
+  {
     "id": "api.context.404.app_error",
     "translation": "Désolé, impossible de trouver cette page."
   },
   {
     "id": "api.context.invalid_body_param.app_error",
-    "translation": "{{.Name}} invalid ou manquant dans le corps de la requête"
+    "translation": "{{.Name}} invalide ou manquant dans le corps de la requête"
   },
   {
     "id": "api.context.invalid_param.app_error",
@@ -866,6 +886,10 @@
   {
     "id": "api.context.unknown.app_error",
     "translation": "Une erreur inconnue est survenue. Veuillez contacter le support."
+  },
+  {
+    "id": "api.deprecated.init.debug",
+    "translation": "Initialisation des routes dépréciées de l'API"
   },
   {
     "id": "api.email_batching.add_notification_email_to_batch.channel_full.app_error",
@@ -978,6 +1002,10 @@
     "translation": "Initialisation des routes de l'API des émoticônes"
   },
   {
+    "id": "api.emoji.init.debug",
+    "translation": "Initialisation des routes de l'API des émoticônes"
+  },
+  {
     "id": "api.emoji.storage.app_error",
     "translation": "Le stockage de fichier n'est pas configuré correctement. Veuillez le paramétrer soit pour utiliser S3 soit le système de fichier local du serveur."
   },
@@ -1002,6 +1030,10 @@
     "translation": "Impossible de créer l'émoticône. Une erreur est survenue durant l'encodage de l'image GIF."
   },
   {
+    "id": "api.file.attachments.disabled.app_error",
+    "translation": "Les fichiers de pièces jointes sont désactivés sur ce serveur."
+  },
+  {
     "id": "api.file.get_file.public_disabled.app_error",
     "translation": "Les liens publics sont désactivés par l'administrateur système."
   },
@@ -1010,8 +1042,8 @@
     "translation": "Le lien public ne semble pas être valide"
   },
   {
-    "id": "api.file.get_file_preview.no_thumbnail.app_error",
-    "translation": "Le fichier n'a pas d'aperçu d'image"
+    "id": "api.file.get_file_preview.no_preview.app_error",
+    "translation": "Le fichier n'a pas d'image d'aperçu"
   },
   {
     "id": "api.file.get_file_thumbnail.no_thumbnail.app_error",
@@ -1023,7 +1055,7 @@
   },
   {
     "id": "api.file.get_info_for_request.storage.app_error",
-    "translation": "Impossible d'envoyer le fichier. Le stockage d'images n'est pas configuré."
+    "translation": "Impossible de récupérer les informations du fichier. Le stockage de fichier n'est pas configuré."
   },
   {
     "id": "api.file.get_public_file_old.storage.app_error",
@@ -1230,6 +1262,10 @@
     "translation": "Les webhooks entrants ont été désactivés par l'administrateur système."
   },
   {
+    "id": "api.ldap.init.debug",
+    "translation": "Initialisation des routes de l'API LDAP"
+  },
+  {
     "id": "api.license.add_license.array.app_error",
     "translation": "Il manque le paramètre \"licence\" dans la requête"
   },
@@ -1264,6 +1300,10 @@
   {
     "id": "api.license.add_license.unique_users.app_error",
     "translation": "Cette licence supporte {{.Users}} utilisateurs, mais votre système compte {{.Count}} utilisateurs uniques. Les utilisateurs uniques sont comptabilisés par adresse e-mail distincte. Vous pouvez voir le nombre d'utilisateurs uniques dans le menu \"Rapports -> Statistiques\"."
+  },
+  {
+    "id": "api.license.client.old_format.app_error",
+    "translation": "Le nouveau format pour la licence du client n'est pas encore supporté. Veuillez spécifier format=old dans la chaîne de requête (query string)"
   },
   {
     "id": "api.license.init.debug",
@@ -1415,7 +1455,7 @@
   },
   {
     "id": "api.post.check_for_out_of_channel_mentions.message.one",
-    "translation": "{{.Username}} a été mentionné, mais ils ne reçoivent pas de notification, car ils ne font pas partie de ce canal."
+    "translation": "{{.Username}} a été mentionné, mais il ne recevra pas de notification, car il ne fait pas partie de ce canal."
   },
   {
     "id": "api.post.create_post.attach_files.error",
@@ -1652,10 +1692,6 @@
     "translation": "Impossible d'enregistrer les préférences pour un autre utilisateur"
   },
   {
-    "id": "api.preference.save_preferences.set_details.app_error",
-    "translation": "session.user_id={{.SessionUserId}}, preference.user_id={{.PreferenceUserId}}"
-  },
-  {
     "id": "api.reaction.delete_reaction.mismatched_channel_id.app_error",
     "translation": "Impossible de supprimer la réaction car l'ID du canal ne correspond pas à l'ID du message dans l'URL"
   },
@@ -1668,8 +1704,16 @@
     "translation": "Impossible de récupérer les réactions car l'ID du canal ne correspond pas à l'ID du message dans l'URL"
   },
   {
+    "id": "api.reaction.save_reaction.invalid.app_error",
+    "translation": "La réaction n'est pas valide."
+  },
+  {
     "id": "api.reaction.save_reaction.mismatched_channel_id.app_error",
     "translation": "Impossible de sauvegarder la réaction car l'ID du canal ne correspond pas à l'ID du message dans l'URL"
+  },
+  {
+    "id": "api.reaction.save_reaction.user_id.app_error",
+    "translation": "Vous ne pouvez pas sauvegarder la réaction pour l'autre utilisateur."
   },
   {
     "id": "api.reaction.send_reaction_event.post.app_error",
@@ -1908,12 +1952,32 @@
     "translation": "Initialisation des routes de l'API des statuts"
   },
   {
+    "id": "api.status.init.debug",
+    "translation": "Initialisation des routes de l'API des statuts"
+  },
+  {
     "id": "api.status.last_activity.error",
     "translation": "Échec de la mise à jour de LastActivityAt pour user_id=%v et session_id=%v, err=%v"
   },
   {
     "id": "api.status.save_status.error",
     "translation": "Echec de la mise-à-jour de LastPingAt pour user_id=%v, err=%v"
+  },
+  {
+    "id": "api.status.user_not_found.app_error",
+    "translation": "Utilisateur introuvable"
+  },
+  {
+    "id": "api.team.add_user_to_team.invalid_data.app_error",
+    "translation": "Donnée invalide."
+  },
+  {
+    "id": "api.team.add_user_to_team.invalid_invite_id.app_error",
+    "translation": "ID d'invitation invalide. Aucune équipe ne correspond à cet ID d'invitation."
+  },
+  {
+    "id": "api.team.add_user_to_team.missing_parameter.app_error",
+    "translation": "Paramètre requis pour ajouter l'utilisateur à une équipe."
   },
   {
     "id": "api.team.create_team.email_disabled.app_error",
@@ -2229,7 +2293,7 @@
   },
   {
     "id": "api.templates.upgrade_30_body.info",
-    "translation": "<h3 style='font-weight: normal; margin-top: 10px;'>VOS COMPTES DUPLIQUES ONT ETE MIS A NIVEAU</h3>Votre serveur Mattermost a été mis à niveau vers la version 3.0, qui vous permet d'utiliser un seul compte pour plusieurs équipes.<br/><br/>Vous recevez cet email parce que le processus de mise à niveau a détecté que votre compte utilisait la même adresse email ou le même nom d'utilisateur que d'autres comptes présents sur le serveur.<br/><br/>Les mises à niveau suivantes ont été effectuées : <br/><br/>{{if .EmailChanged }}- Une adresse email dupliquée d'un compte de l'équipe `/{{.TeamName}}` a été changé en `{{.Email}}`. Vous devrez utiliser cette nouvelle adresse email la prochaine fois que vous vous connecterez à l'aide de votre adresse email et mot de passe.<br/><br/>{{end}}{{if .UsernameChanged }}- Un nom d'utilisateur en doublon d'un compte de l'équipe `/{{.TeamName}}` a été changé en `{{.Username}}` pour éviter toute confusion avec d'autres comptes.<br/><br/>{{end}} ACTION RECOMMANDÉE : <br/><br/>Il est nécessaire que vous vous connectiez aux équipes qui utilisent vos comptes dupliqués de façon à ajouter votre compte principal à cette équipe et ainsi pouvoir continuer à utiliser vos groupes publics et privés.<br/><br/>De cette façon, votre compte principal aura accès à l'entièreté de l'historique des canaux publics et privés. Vous pouvez continuer à utiliser l'historique des messages privés en utilisant vos comptes dupliqués en vous connectant à l'aide de leurs paramètres d'authentification. <br/><br/>POUR PLUS D'INFORMATION: <br/><br/>Pour plus d'information sur la mise à niveau vers Mattermost 3.0, veuillez vous référer à : <a href='http://www.mattermost.org/upgrading-to-mattermost-3-0/'>http://www.mattermost.org/upgrading-to-mattermost-3-0/</a><br/><br/>"
+    "translation": "<h3 style='font-weight: normal; margin-top: 10px;'>VOS COMPTES DUPLIQUES ONT ETE MIS A NIVEAU</h3>Votre serveur Mattermost a été mis à niveau vers la version 3.0, qui vous permet d'utiliser un seul compte pour plusieurs équipes.<br/><br/>Vous recevez cet e-mail parce que le processus de mise à niveau a détecté que votre compte utilisait la même adresse e-mail ou le même nom d'utilisateur que d'autres comptes présents sur le serveur.<br/><br/>Les mises à niveau suivantes ont été effectuées : <br/><br/>{{if .EmailChanged }}- Une adresse e-mail dupliquée d'un compte de l'équipe `/{{.TeamName}}` a été changé en `{{.Email}}`. Vous devrez utiliser cette nouvelle adresse e-mail la prochaine fois que vous vous connecterez à l'aide de votre adresse e-mail et mot de passe.<br/><br/>{{end}}{{if .UsernameChanged }}- Un nom d'utilisateur en doublon d'un compte de l'équipe `/{{.TeamName}}` a été changé en `{{.Username}}` pour éviter toute confusion avec d'autres comptes.<br/><br/>{{end}} ACTION RECOMMANDÉE : <br/><br/>Il est nécessaire que vous vous connectiez aux équipes qui utilisent vos comptes dupliqués de façon à ajouter votre compte principal à cette équipe et ainsi pouvoir continuer à utiliser vos groupes publics et privés.<br/><br/>De cette façon, votre compte principal aura accès à l'entièreté de l'historique des canaux publics et privés. Vous pouvez continuer à utiliser l'historique des messages privés en utilisant vos comptes dupliqués en vous connectant à l'aide de leurs paramètres d'authentification. <br/><br/>POUR PLUS D'INFORMATION: <br/><br/>Pour plus d'information sur la mise à niveau vers Mattermost 3.0, veuillez vous référer à : <a href='http://www.mattermost.org/upgrading-to-mattermost-3-0/'>http://www.mattermost.org/upgrading-to-mattermost-3-0/</a><br/><br/>"
   },
   {
     "id": "api.templates.upgrade_30_subject.info",
@@ -2465,7 +2529,7 @@
   },
   {
     "id": "api.user.login.inactive.app_error",
-    "translation": "Votre compte a été désactivé.  Veuillez contacter un administrateur."
+    "translation": "La connexion a échoué car votre compte a été désactivé.  Veuillez contacter un administrateur."
   },
   {
     "id": "api.user.login.invalid_credentials",
@@ -2621,7 +2685,7 @@
   },
   {
     "id": "api.user.update_password.menu",
-    "translation": "en utilisant le menu préférences"
+    "translation": "en utilisant le menu paramètres"
   },
   {
     "id": "api.user.update_password.oauth.app_error",
@@ -2661,7 +2725,7 @@
   },
   {
     "id": "api.user.upload_profile_user.decode_config.app_error",
-    "translation": "Impossible d'analyser les réglages de la photo de profil."
+    "translation": "Impossible d'analyser les paramètres de la photo de profil."
   },
   {
     "id": "api.user.upload_profile_user.encode.app_error",
@@ -3032,6 +3096,10 @@
     "translation": "Rôles invalides pour la liste des canaux de l'utilisateur."
   },
   {
+    "id": "app.import.validate_user_import_data.auth_data_and_password.error",
+    "translation": "User AuthData et Password sont mutuellement exclusifs."
+  },
+  {
     "id": "app.import.validate_user_import_data.auth_data_length.error",
     "translation": "Les données d'authentification utilisateur sont trop longues."
   },
@@ -3058,6 +3126,10 @@
   {
     "id": "app.import.validate_user_import_data.nickname_length.error",
     "translation": "Le surnom de l'utilisateur est trop long."
+  },
+  {
+    "id": "app.import.validate_user_import_data.pasword_length.error",
+    "translation": "Le mot de passe utilisateur a une longueur invalide."
   },
   {
     "id": "app.import.validate_user_import_data.position_length.error",
@@ -3106,6 +3178,14 @@
   {
     "id": "authentication.permissions.manage_team_roles.name",
     "translation": "Gérer les rôles d'équipe"
+  },
+  {
+    "id": "authentication.permissions.read_public_channel.description",
+    "translation": "Possibilité de lire les canaux publics"
+  },
+  {
+    "id": "authentication.permissions.read_public_channel.name",
+    "translation": "Lire les canaux publics"
   },
   {
     "id": "authentication.permissions.team_invite_user.description",
@@ -3213,7 +3293,7 @@
   },
   {
     "id": "ent.compliance.run_started.info",
-    "translation": "Compliance export started for job '{{.JobName}}' at '{{.FilePath}}'"
+    "translation": "L'export de compatibilité a démarré pour le job '{{.JobName}}' à '{{.FilePath}}'"
   },
   {
     "id": "ent.emoji.licence_disable.app_error",
@@ -3428,22 +3508,6 @@
     "translation": "Page introuvable"
   },
   {
-    "id": "leave_team_modal.desc",
-    "translation": "Vous serez supprimé de tous les canaux et groupes privés. Si l'équipe est privée, vous ne pourrez plus la rejoindre à nouveau. Êtes-vous sûr ?"
-  },
-  {
-    "id": "leave_team_modal.no",
-    "translation": "Non"
-  },
-  {
-    "id": "leave_team_modal.title",
-    "translation": "Quitter l'équipe ?"
-  },
-  {
-    "id": "leave_team_modal.yes",
-    "translation": "Oui"
-  },
-  {
     "id": "manaultesting.get_channel_id.no_found.debug",
     "translation": "Impossible de trouver le canal : %v, %v possibilités recherchées"
   },
@@ -3564,6 +3628,10 @@
     "translation": "Uri de redirection invalide"
   },
   {
+    "id": "model.authorize.is_valid.response_type.app_error",
+    "translation": "Type de réponse invalide"
+  },
+  {
     "id": "model.authorize.is_valid.scope.app_error",
     "translation": "Portée invalide"
   },
@@ -3660,6 +3728,14 @@
     "translation": "Impossible d'écrire la demande"
   },
   {
+    "id": "model.client.get_flagged_posts_in_channel.missing_parameter.app_error",
+    "translation": "Paramètre de canal manquant"
+  },
+  {
+    "id": "model.client.get_flagged_posts_in_team.missing_parameter.app_error",
+    "translation": "Paramètre d'équipe manquant"
+  },
+  {
     "id": "model.client.login.app_error",
     "translation": "Les jetons d’authentification ne correspondent pas"
   },
@@ -3674,6 +3750,30 @@
   {
     "id": "model.client.set_profile_user.writer.app_error",
     "translation": "Impossible d'écrire la requête"
+  },
+  {
+    "id": "model.client.upload_post_attachment.channel_id.app_error",
+    "translation": "Une erreur est survenue lors de l'écriture de l'ID du channel dans le formulaire multiforme"
+  },
+  {
+    "id": "model.client.upload_post_attachment.file.app_error",
+    "translation": "Une erreur est survenue lors de l'écriture du fichier dans le formulaire à contenu multiple"
+  },
+  {
+    "id": "model.client.upload_post_attachment.file_size.app_error",
+    "translation": "Une erreur est survenue lors de l'écriture de la taille du fichier (fileSize) dans le formulaire à contenu multiple"
+  },
+  {
+    "id": "model.client.upload_post_attachment.import_from.app_error",
+    "translation": "Une erreur est survenue lors de l'écriture de l'origine d'importation (importForm) dans le formulaire à contenu multiple"
+  },
+  {
+    "id": "model.client.upload_post_attachment.writer.app_error",
+    "translation": "Une erreur est survenue lors de la fermeture de l'outil d'écriture de contenu multiple"
+  },
+  {
+    "id": "model.client.upload_saml_cert.app_error",
+    "translation": "Erreur lors de la création de la requête pour le formulaire multipart pour le certificat SAML"
   },
   {
     "id": "model.command.is_valid.create_at.app_error",
@@ -3717,7 +3817,7 @@
   },
   {
     "id": "model.command.is_valid.url_http.app_error",
-    "translation": "URL invalude. Il doit s'agir d'une URL valide et commencer par http:// ou https://"
+    "translation": "URL invalide. L'URL doit être valide et commencer par http:// ou https://"
   },
   {
     "id": "model.command.is_valid.user_id.app_error",
@@ -3757,7 +3857,7 @@
   },
   {
     "id": "model.config.is_valid.email_batching_interval.app_error",
-    "translation": "Intervalle d'envoi d'e-mails par lot invalide pour les réglages de courriels. Doit être égal ou supérieur à 30 secondes."
+    "translation": "Intervalle d'envoi d'e-mails par lot invalide pour les paramètres d'e-mail. Doit être égal ou supérieur à 30 secondes."
   },
   {
     "id": "model.config.is_valid.email_reset_salt.app_error",
@@ -3769,7 +3869,7 @@
   },
   {
     "id": "model.config.is_valid.email_security.app_error",
-    "translation": "Sécurité de connexion invalide dans les paramètres de messagerie. Doit être '', 'TLS' ou 'STARTTLS'"
+    "translation": "Sécurité de connexion invalide pour les paramètres e-mail. Doit être '', 'TLS' ou 'STARTTLS'"
   },
   {
     "id": "model.config.is_valid.encrypt_sql.app_error",
@@ -3849,7 +3949,7 @@
   },
   {
     "id": "model.config.is_valid.ldap_security.app_error",
-    "translation": "Sécurité de connexion invalide dans les paramètres de messagerie. Doit être '', 'TLS' ou 'STARTTLS'"
+    "translation": "Sécurité de connexion invalide pour les paramètres AD/LDAP. Doit être '', 'TLS' ou 'STARTTLS'"
   },
   {
     "id": "model.config.is_valid.ldap_server",
@@ -3881,7 +3981,7 @@
   },
   {
     "id": "model.config.is_valid.max_file_size.app_error",
-    "translation": "Taille de fichier max invalide pour les paramètres du fichier. Doit être zéro ou un entier positif."
+    "translation": "Paramètres de taille de fichier maximale invalides. Doit être un nombre entier plus grand que zéro."
   },
   {
     "id": "model.config.is_valid.max_notify_per_channel.app_error",
@@ -4320,6 +4420,14 @@
     "translation": "Id d'utilisateur invalide"
   },
   {
+    "id": "model.token.is_valid.expiry",
+    "translation": "Durée d'expiration de jeton invalide."
+  },
+  {
+    "id": "model.token.is_valid.size",
+    "translation": "Jeton invalide."
+  },
+  {
     "id": "model.user.is_valid.auth_data.app_error",
     "translation": "Données d'authentification invalides"
   },
@@ -4354,6 +4462,10 @@
   {
     "id": "model.user.is_valid.nickname.app_error",
     "translation": "Pseudonyme invalide"
+  },
+  {
+    "id": "model.user.is_valid.password_limit.app_error",
+    "translation": "Impossible de définir un mot de passe plus grand que 72 caractères à cause des limitations de bcrypt."
   },
   {
     "id": "model.user.is_valid.position.app_error",
@@ -4504,10 +4616,6 @@
     "translation": "Échec de création du driver spécifique au dialecte %v"
   },
   {
-    "id": "store.sql.drop_column.critical",
-    "translation": "Échec de suppression de la colonne %v"
-  },
-  {
     "id": "store.sql.incorrect_mac",
     "translation": "MAC incorrect pour le ciphertext indiqué"
   },
@@ -4656,6 +4764,14 @@
     "translation": "Aucun canal n'a pu être trouvé"
   },
   {
+    "id": "store.sql_channel.get_channels_by_ids.get.app_error",
+    "translation": "Impossible de récupérer les canaux"
+  },
+  {
+    "id": "store.sql_channel.get_channels_by_ids.not_found.app_error",
+    "translation": "Aucun canal trouvé"
+  },
+  {
     "id": "store.sql_channel.get_deleted_by_name.existing.app_error",
     "translation": "Impossible de trouver le canal supprimé existant"
   },
@@ -4700,6 +4816,14 @@
     "translation": "Nous n'avons pas pu obtenir les canaux"
   },
   {
+    "id": "store.sql_channel.get_public_channels.get.app_error",
+    "translation": "Impossible de récupérer les canaux publics"
+  },
+  {
+    "id": "store.sql_channel.get_unread.app_error",
+    "translation": "Impossible de récupérer les messages non lus du canal"
+  },
+  {
     "id": "store.sql_channel.increment_mention_count.app_error",
     "translation": "Nous n'avons pas pu incrémenter le nombre de mentions"
   },
@@ -4714,6 +4838,10 @@
   {
     "id": "store.sql_channel.permanent_delete_members_by_user.app_error",
     "translation": "Nous n'avons pas pu retirer le membre du canal"
+  },
+  {
+    "id": "store.sql_channel.pinned_posts.app_error",
+    "translation": "Impossible de récupérer les messages épinglés"
   },
   {
     "id": "store.sql_channel.remove_member.app_error",
@@ -5100,6 +5228,10 @@
     "translation": "Vous ne pouvez pas mettre à jour un message existant"
   },
   {
+    "id": "store.sql_post.search.disabled",
+    "translation": "La recherche a été désactivée sur ce serveur. Veuillez contacter votre administrateur."
+  },
+  {
     "id": "store.sql_post.search.warn",
     "translation": "Erreur de requête lors de la recherche de messages: %v"
   },
@@ -5406,6 +5538,14 @@
   {
     "id": "store.sql_team.save_member.save.app_error",
     "translation": "Nous n'avons pas pu enregistrer le membre du canal"
+  },
+  {
+    "id": "store.sql_team.search_all_team.app_error",
+    "translation": "Une erreur s'est produite lors de la recherche des équipes"
+  },
+  {
+    "id": "store.sql_team.search_open_team.app_error",
+    "translation": "Une erreur s'est produite lors de la recherche des équipes ouvertes"
   },
   {
     "id": "store.sql_team.update.app_error",
@@ -5978,5 +6118,21 @@
   {
     "id": "web.watcher_fail.error",
     "translation": "Échec de l'ajout du dossier à l'observateur %v"
+  },
+  {
+    "id": "wsapi.status.init.debug",
+    "translation": "Initialisation des routes de l'API des statuts"
+  },
+  {
+    "id": "wsapi.system.init.debug",
+    "translation": "Initialisation des routes systèmes de l'API WebSocket"
+  },
+  {
+    "id": "wsapi.user.init.debug",
+    "translation": "Initialisation des routes utilisateurs de l'API WebSocket"
+  },
+  {
+    "id": "wsapi.webrtc.init.debug",
+    "translation": "Initialisation des routes de l'API WebSocket webrtc"
   }
 ]

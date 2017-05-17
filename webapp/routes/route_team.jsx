@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 import $ from 'jquery';
@@ -6,15 +6,12 @@ import * as RouteUtils from 'routes/route_utils.jsx';
 import {browserHistory} from 'react-router/es6';
 
 import TeamStore from 'stores/team_store.jsx';
+import UserStore from 'stores/user_store.jsx';
 import * as GlobalActions from 'actions/global_actions.jsx';
 import {loadStatusesForChannelAndSidebar} from 'actions/status_actions.jsx';
 import {reconnect} from 'actions/websocket_actions.jsx';
-import AppDispatcher from 'dispatcher/app_dispatcher.jsx';
 import Constants from 'utils/constants.jsx';
-const ActionTypes = Constants.ActionTypes;
 import * as AsyncClient from 'utils/async_client.jsx';
-import * as Utils from 'utils/utils.jsx';
-import Client from 'client/web_client.jsx';
 import ChannelStore from 'stores/channel_store.jsx';
 import BrowserStore from 'stores/browser_store.jsx';
 
@@ -22,6 +19,13 @@ import emojiRoute from 'routes/route_emoji.jsx';
 import integrationsRoute from 'routes/route_integrations.jsx';
 
 import {loadNewDMIfNeeded, loadNewGMIfNeeded, loadProfilesForSidebar} from 'actions/user_actions.jsx';
+
+// Redux actions
+import store from 'stores/redux_store.jsx';
+const dispatch = store.dispatch;
+const getState = store.getState;
+
+import {fetchMyChannelsAndMembers, joinChannel} from 'mattermost-redux/actions/channels';
 
 function onChannelEnter(nextState, replace, callback) {
     doChannelChange(nextState, replace, callback);
@@ -35,28 +39,22 @@ function doChannelChange(state, replace, callback) {
         channel = ChannelStore.getByName(state.params.channel);
 
         if (channel && channel.type === Constants.DM_CHANNEL) {
-            loadNewDMIfNeeded(Utils.getUserIdFromChannelName(channel));
+            loadNewDMIfNeeded(channel.id);
         } else if (channel && channel.type === Constants.GM_CHANNEL) {
             loadNewGMIfNeeded(channel.id);
         }
 
         if (!channel) {
-            Client.joinChannelByName(
-                state.params.channel,
+            joinChannel(UserStore.getCurrentId(), TeamStore.getCurrentId(), null, state.params.channel)(dispatch, getState).then(
                 (data) => {
-                    AppDispatcher.handleServerAction({
-                        type: ActionTypes.RECEIVED_CHANNEL,
-                        channel: data
-                    });
-
-                    GlobalActions.emitChannelClickEvent(data);
-                    callback();
-                },
-                () => {
-                    if (state.params.team) {
-                        replace('/' + state.params.team + '/channels/town-square');
-                    } else {
-                        replace('/');
+                    if (data) {
+                        GlobalActions.emitChannelClickEvent(data.channel);
+                    } else if (data == null) {
+                        if (state.params.team) {
+                            replace('/' + state.params.team + '/channels/town-square');
+                        } else {
+                            replace('/');
+                        }
                     }
                     callback();
                 }
@@ -108,26 +106,16 @@ function preNeedsTeam(nextState, replace, callback) {
     if (nextState.location.pathname.indexOf('/channels/') > -1 ||
         nextState.location.pathname.indexOf('/pl/') > -1) {
         AsyncClient.getMyTeamsUnread();
-        const members = TeamStore.getMyTeamMembers();
-        members.forEach((m) => AsyncClient.getMyChannelMembersForTeam(m.team_id));
+        fetchMyChannelsAndMembers(team.id)(dispatch, getState);
     }
 
     const d1 = $.Deferred(); //eslint-disable-line new-cap
 
-    Client.getChannels(
-        (data) => {
-            AppDispatcher.handleServerAction({
-                type: ActionTypes.RECEIVED_CHANNELS,
-                channels: data
-            });
-
+    fetchMyChannelsAndMembers(team.id)(dispatch, getState).then(
+        () => {
             loadStatusesForChannelAndSidebar();
             loadProfilesForSidebar();
 
-            d1.resolve();
-        },
-        (err) => {
-            AsyncClient.dispatchError(err, 'getChannels');
             d1.resolve();
         }
     );
@@ -168,7 +156,7 @@ export default {
         emojiRoute,
         {
             getComponents: (location, callback) => {
-                System.import('components/needs_team.jsx').then(RouteUtils.importComponentSuccess(callback));
+                System.import('components/needs_team').then(RouteUtils.importComponentSuccess(callback));
             },
             childRoutes: [
                 {
@@ -176,7 +164,7 @@ export default {
                     onEnter: onChannelEnter,
                     getComponents: (location, callback) => {
                         Promise.all([
-                            System.import('components/team_sidebar/team_sidebar_controller.jsx'),
+                            System.import('components/team_sidebar'),
                             System.import('components/sidebar.jsx'),
                             System.import('components/channel_view.jsx')
                         ]).then(
@@ -189,7 +177,7 @@ export default {
                     onEnter: onPermalinkEnter,
                     getComponents: (location, callback) => {
                         Promise.all([
-                            System.import('components/team_sidebar/team_sidebar_controller.jsx'),
+                            System.import('components/team_sidebar'),
                             System.import('components/sidebar.jsx'),
                             System.import('components/permalink_view.jsx')
                         ]).then(
@@ -201,7 +189,7 @@ export default {
                     path: 'tutorial',
                     getComponents: (location, callback) => {
                         Promise.all([
-                            System.import('components/team_sidebar/team_sidebar_controller.jsx'),
+                            System.import('components/team_sidebar'),
                             System.import('components/sidebar.jsx'),
                             System.import('components/tutorial/tutorial_view.jsx')
                         ]).then(
