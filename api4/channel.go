@@ -21,6 +21,7 @@ func InitChannel() {
 	BaseRoutes.Channels.Handle("/members/{user_id:[A-Za-z0-9]+}/view", ApiSessionRequired(viewChannel)).Methods("POST")
 
 	BaseRoutes.ChannelsForTeam.Handle("", ApiSessionRequired(getPublicChannelsForTeam)).Methods("GET")
+	BaseRoutes.ChannelsForTeam.Handle("/deleted", ApiSessionRequired(getDeletedChannelsForTeam)).Methods("GET")
 	BaseRoutes.ChannelsForTeam.Handle("/ids", ApiSessionRequired(getPublicChannelsByIdsForTeam)).Methods("POST")
 	BaseRoutes.ChannelsForTeam.Handle("/search", ApiSessionRequired(searchChannelsForTeam)).Methods("POST")
 	BaseRoutes.User.Handle("/teams/{team_id:[A-Za-z0-9]+}/channels", ApiSessionRequired(getChannelsForTeamForUser)).Methods("GET")
@@ -28,6 +29,7 @@ func InitChannel() {
 	BaseRoutes.Channel.Handle("", ApiSessionRequired(getChannel)).Methods("GET")
 	BaseRoutes.Channel.Handle("", ApiSessionRequired(updateChannel)).Methods("PUT")
 	BaseRoutes.Channel.Handle("/patch", ApiSessionRequired(patchChannel)).Methods("PUT")
+	BaseRoutes.Channel.Handle("/restore", ApiSessionRequired(restoreChannel)).Methods("POST")
 	BaseRoutes.Channel.Handle("", ApiSessionRequired(deleteChannel)).Methods("DELETE")
 	BaseRoutes.Channel.Handle("/stats", ApiSessionRequired(getChannelStats)).Methods("GET")
 	BaseRoutes.Channel.Handle("/pinned", ApiSessionRequired(getPinnedPosts)).Methods("GET")
@@ -177,6 +179,36 @@ func patchChannel(c *Context, w http.ResponseWriter, r *http.Request) {
 		c.LogAudit("")
 		w.Write([]byte(rchannel.ToJson()))
 	}
+}
+
+func restoreChannel(c *Context, w http.ResponseWriter, r *http.Request) {
+	c.RequireChannelId()
+	if c.Err != nil {
+		return
+	}
+
+	var channel *model.Channel
+	var err *model.AppError
+	if channel, err = app.GetChannel(c.Params.ChannelId); err != nil {
+		c.Err = err
+		return
+	}
+	teamId := channel.TeamId
+
+	if !app.SessionHasPermissionToTeam(c.Session, teamId, model.PERMISSION_MANAGE_TEAM) {
+		c.SetPermissionError(model.PERMISSION_MANAGE_TEAM)
+		return
+	}
+
+	channel, err = app.RestoreChannel(channel)
+	if err != nil {
+		c.Err = err
+		return
+	}
+
+	c.LogAudit("name=" + channel.Name)
+	w.Write([]byte(channel.ToJson()))
+
 }
 
 func CanManageChannel(c *Context, channel *model.Channel) bool {
@@ -377,6 +409,26 @@ func getPublicChannelsForTeam(c *Context, w http.ResponseWriter, r *http.Request
 	}
 
 	if channels, err := app.GetPublicChannelsForTeam(c.Params.TeamId, c.Params.Page*c.Params.PerPage, c.Params.PerPage); err != nil {
+		c.Err = err
+		return
+	} else {
+		w.Write([]byte(channels.ToJson()))
+		return
+	}
+}
+
+func getDeletedChannelsForTeam(c *Context, w http.ResponseWriter, r *http.Request) {
+	c.RequireTeamId()
+	if c.Err != nil {
+		return
+	}
+
+	if !app.SessionHasPermissionToTeam(c.Session, c.Params.TeamId, model.PERMISSION_MANAGE_TEAM) {
+		c.SetPermissionError(model.PERMISSION_MANAGE_TEAM)
+		return
+	}
+
+	if channels, err := app.GetDeletedChannels(c.Params.TeamId, c.Params.Page * c.Params.PerPage, c.Params.PerPage); err != nil {
 		c.Err = err
 		return
 	} else {

@@ -1,3 +1,5 @@
+import PropTypes from 'prop-types';
+
 // Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
@@ -34,10 +36,10 @@ const USERS_PER_PAGE = 50;
 
 export default class SystemUsers extends React.Component {
     static propTypes = {
-        actions: React.PropTypes.shape({
-            getTeams: React.PropTypes.func.isRequired,
-            getTeamStats: React.PropTypes.func.isRequired,
-            getUser: React.PropTypes.func.isRequired
+        actions: PropTypes.shape({
+            getTeams: PropTypes.func.isRequired,
+            getTeamStats: PropTypes.func.isRequired,
+            getUser: PropTypes.func.isRequired
         }).isRequired
     }
 
@@ -156,6 +158,11 @@ export default class SystemUsers extends React.Component {
     }
 
     loadDataForTeam(teamId) {
+        if (this.state.term) {
+            this.search(this.state.term, teamId);
+            return;
+        }
+
         if (teamId === ALL_USERS) {
             loadProfiles(0, Constants.PROFILE_CHUNK_SIZE, this.loadComplete);
             getStandardAnalytics();
@@ -191,9 +198,9 @@ export default class SystemUsers extends React.Component {
         }
     }
 
-    search(term) {
+    search(term, teamId = this.state.teamId) {
         if (term === '') {
-            this.updateUsersFromStore(this.state.teamId, term);
+            this.updateUsersFromStore(teamId, term);
 
             this.setState({
                 loading: false
@@ -203,7 +210,7 @@ export default class SystemUsers extends React.Component {
             return;
         }
 
-        this.doSearch(this.state.teamId, term);
+        this.doSearch(teamId, term);
     }
 
     doSearch(teamId, term, now = false) {
@@ -279,6 +286,7 @@ export default class SystemUsers extends React.Component {
             <div className='system-users__filter-row'>
                 <div className='system-users__filter'>
                     <input
+                        id='searchUsers'
                         ref='filter'
                         className='form-control filter-textbox'
                         placeholder={Utils.localizeMessage('filtered_user_list.search', 'Search users')}

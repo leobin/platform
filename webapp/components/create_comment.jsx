@@ -30,6 +30,7 @@ const ActionTypes = Constants.ActionTypes;
 const KeyCodes = Constants.KeyCodes;
 
 import {REACTION_PATTERN, EMOJI_PATTERN} from './create_post.jsx';
+import PropTypes from 'prop-types';
 import React from 'react';
 
 export default class CreateComment extends React.Component {
@@ -173,11 +174,7 @@ export default class CreateComment extends React.Component {
     handleSubmit(e) {
         e.preventDefault();
 
-        if (this.state.uploadsInProgress.length > 0) {
-            return;
-        }
-
-        if (this.state.submitting) {
+        if (this.state.uploadsInProgress.length > 0 || this.state.submitting) {
             return;
         }
 
@@ -659,7 +656,7 @@ export default class CreateComment extends React.Component {
 }
 
 CreateComment.propTypes = {
-    channelId: React.PropTypes.string.isRequired,
-    rootId: React.PropTypes.string.isRequired,
-    latestPostId: React.PropTypes.string
+    channelId: PropTypes.string.isRequired,
+    rootId: PropTypes.string.isRequired,
+    latestPostId: PropTypes.string
 };

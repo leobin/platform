@@ -5,16 +5,21 @@ import $ from 'jquery';
 import ReactDOM from 'react-dom';
 
 import PostTime from './post_time.jsx';
+import PostFlagIcon from 'components/common/post_flag_icon.jsx';
 
 import * as GlobalActions from 'actions/global_actions.jsx';
 import * as PostActions from 'actions/post_actions.jsx';
+import CommentIcon from 'components/common/comment_icon.jsx';
 
 import * as Utils from 'utils/utils.jsx';
 import * as PostUtils from 'utils/post_utils.jsx';
 import Constants from 'utils/constants.jsx';
 import DelayedAction from 'utils/delayed_action.jsx';
-import {Tooltip, OverlayTrigger, Overlay} from 'react-bootstrap';
+import {Overlay} from 'react-bootstrap';
 import EmojiPicker from 'components/emoji_picker/emoji_picker.jsx';
+import ChannelStore from 'stores/channel_store.jsx';
+
+import PropTypes from 'prop-types';
 
 import React from 'react';
 import {FormattedMessage} from 'react-intl';
@@ -325,7 +330,11 @@ export default class PostInfo extends React.Component {
 
     render() {
         var post = this.props.post;
-        const flagIcon = Constants.FLAG_ICON_SVG;
+
+        let idCount = -1;
+        if (this.props.lastPostCount >= 0 && this.props.lastPostCount < Constants.TEST_ID_COUNT) {
+            idCount = this.props.lastPostCount;
+        }
 
         this.canDelete = PostUtils.canDeletePost(post);
         this.canEdit = PostUtils.canEditPost(post, this.editDisableAction);
@@ -337,30 +346,14 @@ export default class PostInfo extends React.Component {
         let comments = null;
         let react = null;
         if (!isEphemeral && !isPending && !isSystemMessage) {
-            let showCommentClass;
-            let commentCountText;
-            if (this.props.commentCount >= 1) {
-                showCommentClass = ' icon--show';
-                commentCountText = this.props.commentCount;
-            } else {
-                showCommentClass = '';
-                commentCountText = '';
-            }
-
             comments = (
-                <a
-                    href='#'
-                    className={'comment-icon__container' + showCommentClass}
-                    onClick={this.props.handleCommentClick}
-                >
-                    <span
-                        className='comment-icon'
-                        dangerouslySetInnerHTML={{__html: Constants.REPLY_ICON}}
-                    />
-                    <span className='comment-count'>
-                        {commentCountText}
-                    </span>
-                </a>
+                <CommentIcon
+                    idPrefix={'commentIcon'}
+                    idCount={idCount}
+                    handleCommentClick={this.props.handleCommentClick}
+                    commentCount={this.props.commentCount}
+                    id={ChannelStore.getCurrentId() + '_' + post.id}
+                />
             );
 
             if (Utils.isFeatureEnabled(Constants.PRE_RELEASE_FEATURES.EMOJI_PICKER_PREVIEW)) {
@@ -397,16 +390,16 @@ export default class PostInfo extends React.Component {
         let options;
         if (isEphemeral) {
             options = (
-                <li className='col col__remove'>
+                <div className='col col__remove'>
                     {this.createRemovePostButton()}
-                </li>
+                </div>
             );
         } else if (!isPending) {
             const dropdown = this.createDropdown(isSystemMessage);
 
             if (dropdown) {
                 options = (
-                    <li className='col col__reply'>
+                    <div className='col col__reply'>
                         <div
                             className='dropdown'
                             ref='dotMenu'
@@ -415,67 +408,9 @@ export default class PostInfo extends React.Component {
                         </div>
                         {react}
                         {comments}
-                    </li>
+                    </div>
                 );
             }
-        }
-
-        let flag;
-        let flagFunc;
-        let flagVisible = '';
-        let flagTooltip = (
-            <Tooltip id='flagTooltip'>
-                <FormattedMessage
-                    id='flag_post.flag'
-                    defaultMessage='Flag for follow up'
-                />
-            </Tooltip>
-        );
-        if (this.props.isFlagged) {
-            flagVisible = 'visible';
-            flag = (
-                <span
-                    className='icon'
-                    dangerouslySetInnerHTML={{__html: flagIcon}}
-                />
-            );
-            flagFunc = this.unflagPost;
-            flagTooltip = (
-                <Tooltip id='flagTooltip'>
-                    <FormattedMessage
-                        id='flag_post.unflag'
-                        defaultMessage='Unflag'
-                    />
-                </Tooltip>
-            );
-        } else {
-            flag = (
-                <span
-                    className='icon'
-                    dangerouslySetInnerHTML={{__html: flagIcon}}
-                />
-            );
-            flagFunc = this.flagPost;
-        }
-
-        let flagTrigger;
-        if (!isEphemeral) {
-            flagTrigger = (
-                <OverlayTrigger
-                    key={'flagtooltipkey' + flagVisible}
-                    delayShow={Constants.OVERLAY_TIME_DELAY}
-                    placement='top'
-                    overlay={flagTooltip}
-                >
-                    <a
-                        href='#'
-                        className={'flag-icon__container ' + flagVisible}
-                        onClick={flagFunc}
-                    >
-                        {flag}
-                    </a>
-                </OverlayTrigger>
-            );
         }
 
         let pinnedBadge;
@@ -491,8 +426,8 @@ export default class PostInfo extends React.Component {
         }
 
         return (
-            <ul className='post__header--info'>
-                <li className='col'>
+            <div className='post__header--info'>
+                <div className='col'>
                     <PostTime
                         eventTime={post.create_at}
                         sameUser={this.props.sameUser}
@@ -502,10 +437,16 @@ export default class PostInfo extends React.Component {
                     />
                     {pinnedBadge}
                     {this.state.showEmojiPicker}
-                    {flagTrigger}
-                </li>
+                    <PostFlagIcon
+                        idPrefix={'centerPostFlag'}
+                        idCount={idCount}
+                        postId={post.id}
+                        isFlagged={this.props.isFlagged}
+                        isEphemeral={isEphemeral}
+                    />
+                </div>
                 {options}
-            </ul>
+            </div>
         );
     }
 }
@@ -517,14 +458,15 @@ PostInfo.defaultProps = {
     sameUser: false
 };
 PostInfo.propTypes = {
-    post: React.PropTypes.object.isRequired,
-    commentCount: React.PropTypes.number.isRequired,
-    isLastComment: React.PropTypes.bool.isRequired,
-    handleCommentClick: React.PropTypes.func.isRequired,
-    handleDropdownOpened: React.PropTypes.func.isRequired,
-    sameUser: React.PropTypes.bool.isRequired,
-    currentUser: React.PropTypes.object.isRequired,
-    compactDisplay: React.PropTypes.bool,
-    useMilitaryTime: React.PropTypes.bool.isRequired,
-    isFlagged: React.PropTypes.bool
+    post: PropTypes.object.isRequired,
+    lastPostCount: PropTypes.number,
+    commentCount: PropTypes.number.isRequired,
+    isLastComment: PropTypes.bool.isRequired,
+    handleCommentClick: PropTypes.func.isRequired,
+    handleDropdownOpened: PropTypes.func.isRequired,
+    sameUser: PropTypes.bool.isRequired,
+    currentUser: PropTypes.object.isRequired,
+    compactDisplay: PropTypes.bool,
+    useMilitaryTime: PropTypes.bool.isRequired,
+    isFlagged: PropTypes.bool
 };
